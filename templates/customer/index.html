@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% block title %}Home - Saffron Feast Restaurant{% endblock %}
+
+{% block content %}
+<div class="container">
+  
+  <!-- HERO BANNER -->
+  <section class="hero">
+    <div class="container hero-inner">
+      <div class="hero-text">
+        <h1>Delicious Flavors, <span>Crafted with Passion.</span></h1>
+        <p>
+          Experience gourmet dining with complete customization. Order for Dine-In with live table service or grab quick TakeAway with real-time bill & kitchen tracking.
+        </p>
+        <div class="hero-actions">
+          <a href="{{ url_for('menu') }}" class="btn btn-primary" style="font-size: 1.05rem; padding: 12px 24px;">
+            🍽️ Browse Menu
+          </a>
+          <a href="{{ url_for('customer_queue') }}" class="btn btn-secondary" style="font-size: 1.05rem; padding: 12px 24px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);">
+            ⏳ Join Table Queue
+          </a>
+        </div>
+      </div>
+
+      <div class="hero-stats-card">
+        <h4>Live Dining Status</h4>
+        <div class="hero-stats-val" style="color: var(--accent);">
+          {{ queue_count }} <span style="font-size: 1.1rem; font-weight: normal; color: #cbd5e1;">parties in queue</span>
+        </div>
+        <p style="font-size: 0.85rem; color: #94a3b8; margin-top: 10px;">
+          Average dining wait time: ~15 mins. Skip the physical line by taking a digital token now!
+        </p>
+        <a href="{{ url_for('customer_queue') }}" class="btn btn-primary btn-sm btn-block" style="margin-top: 14px;">
+          Get Queue Token
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- HIGHLIGHT FEATURES / DBMS MODULES -->
+  <section style="margin-bottom: 50px;">
+    <div class="grid-4">
+      <div class="menu-card" style="padding: 22px; text-align: center;">
+        <div style="font-size: 2.2rem; margin-bottom: 10px;">🌶️</div>
+        <h3 style="font-size: 1.15rem; margin-bottom: 6px;">Spice Attributes</h3>
+        <p style="font-size: 0.88rem; color: var(--text-muted);">
+          Every dish can be tailored to your spice tolerance: Mild, Medium, Spicy, or Extra Spicy.
+        </p>
+      </div>
+
+      <div class="menu-card" style="padding: 22px; text-align: center;">
+        <div style="font-size: 2.2rem; margin-bottom: 10px;">🛎️</div>
+        <h3 style="font-size: 1.15rem; margin-bottom: 6px;">Dine-In or TakeAway</h3>
+        <p style="font-size: 0.88rem; color: var(--text-muted);">
+          Choose your exact table number for dine-in service, or opt for express contactless takeaway.
+        </p>
+      </div>
+
+      <div class="menu-card" style="padding: 22px; text-align: center;">
+        <div style="font-size: 2.2rem; margin-bottom: 10px;">🧾</div>
+        <h3 style="font-size: 1.15rem; margin-bottom: 6px;">Instant Check Bill</h3>
+        <p style="font-size: 0.88rem; color: var(--text-muted);">
+          Transparent itemized invoices with discounts applied, live kitchen preparation progress tracking.
+        </p>
+      </div>
+
+      <div class="menu-card" style="padding: 22px; text-align: center;">
+        <div style="font-size: 2.2rem; margin-bottom: 10px;">🎟️</div>
+        <h3 style="font-size: 1.15rem; margin-bottom: 6px;">Promotional Offers</h3>
+        <p style="font-size: 0.88rem; color: var(--text-muted);">
+          Apply active promo vouchers at checkout for automatic instant percentage bill reductions.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ACTIVE OFFERS HIGHLIGHT -->
+  {% if offers %}
+  <section style="margin-bottom: 50px;">
+    <div class="section-header">
+      <div>
+        <h2>Special Offers & Promo Codes</h2>
+        <p>Save more on every order with these limited time dining coupons</p>
+      </div>
+      <a href="{{ url_for('customer_offers') }}" style="color: var(--primary); font-weight: 600;">View All Offers &rarr;</a>
+    </div>
+
+    <div class="grid-3">
+      {% for off in offers %}
+      <div class="offer-card">
+        <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">
+          FLAT {{ off.discount_percent|int }}% DISCOUNT
+        </div>
+        <h3 style="font-size: 1.25rem; margin: 4px 0 8px; color: var(--secondary);">{{ off.title }}</h3>
+        <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 12px;">{{ off.description }}</p>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="offer-code-pill" onclick="applyCouponCode('{{ off.code }}')">{{ off.code }}</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Min. ${{ "%.2f"|format(off.min_order_amount) }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- FEATURED DISHES -->
+  <section style="margin-bottom: 50px;">
+    <div class="section-header">
+      <div>
+        <h2>Chef's Handpicked Specials</h2>
+        <p>Tantalizing specialties cooked with authentic spices and fresh local produce</p>
+      </div>
+      <a href="{{ url_for('menu') }}" class="btn btn-outline btn-sm">Explore Full Menu</a>
+    </div>
+
+    <div class="grid-3">
+      {% for item in featured %}
+      <div class="menu-card">
+        <div class="menu-card-img-wrap">
+          <img src="{{ item.image_url }}" alt="{{ item.name }}" loading="lazy">
+          <div class="menu-card-badges">
+            {% if item.diet_type == 'veg' %}
+              <span class="badge badge-veg">● Pure Veg</span>
+            {% else %}
+              <span class="badge badge-nonveg">▲ Non-Veg</span>
+            {% endif %}
+            <span class="badge" style="background:#fff; color:var(--secondary);">{{ item.category_name }}</span>
+          </div>
+          <div class="menu-card-price">${{ "%.2f"|format(item.price) }}</div>
+        </div>
+
+        <div class="menu-card-body">
+          <h3 class="menu-card-title">{{ item.name }}</h3>
+          <p class="menu-card-desc">{{ item.description }}</p>
+
+          <form action="{{ url_for('add_to_cart') }}" method="POST" class="menu-card-form">
+            <input type="hidden" name="item_id" value="{{ item.id }}">
+            
+            {% if item.is_spicy_customizable %}
+            <div class="spice-selector-group">
+              <label for="spice_{{ item.id }}">Spice Level Preference:</label>
+              <select name="spice_level" id="spice_{{ item.id }}" class="spice-select">
+                <option value="Mild" {% if item.default_spice_level == 'Mild' %}selected{% endif %}>🟢 Mild (Gentle)</option>
+                <option value="Medium" {% if item.default_spice_level == 'Medium' %}selected{% endif %}>🟡 Medium (Balanced)</option>
+                <option value="Spicy" {% if item.default_spice_level == 'Spicy' %}selected{% endif %}>🟠 Spicy (Hot)</option>
+                <option value="Extra Spicy" {% if item.default_spice_level == 'Extra Spicy' %}selected{% endif %}>🔴 Extra Spicy (Fiery)</option>
+              </select>
+            </div>
+            {% else %}
+              <input type="hidden" name="spice_level" value="Mild">
+            {% endif %}
+
+            <div class="menu-card-actions">
+              <input type="number" name="quantity" value="1" min="1" max="20" class="qty-input">
+              <button type="submit" class="btn btn-primary btn-block btn-sm">
+                + Add to Cart
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- CUSTOMER REVIEWS PREVIEW -->
+  {% if reviews %}
+  <section style="margin-bottom: 20px;">
+    <div class="section-header">
+      <div>
+        <h2>Diner Experiences & Reviews</h2>
+        <p>What our satisfied guests have to say about the culinary quality</p>
+      </div>
+      <a href="{{ url_for('customer_reviews') }}" style="color: var(--primary); font-weight: 600;">Read All Reviews &rarr;</a>
+    </div>
+
+    <div class="grid-3">
+      {% for rev in reviews %}
+      <div class="menu-card" style="padding: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <strong>{{ rev.customer_name }}</strong>
+          <span style="color: #eab308; font-size: 1.1rem;">
+            {% for _ in range(rev.rating) %}★{% endfor %}
+          </span>
+        </div>
+        {% if rev.dish_name %}
+          <div style="font-size: 0.82rem; color: var(--primary); font-weight: 600; margin-bottom: 6px;">
+            Reviewed: {{ rev.dish_name }}
+          </div>
+        {% endif %}
+        <p style="font-size: 0.9rem; color: var(--text-muted); font-style: italic;">
+          "{{ rev.comment }}"
+        </p>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}My Orders - Saffron Feast{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="section-header">
+    <div>
+      <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--secondary); margin-bottom: 6px;">Your Order History</h1>
+      <p>Track live preparation, view past bills, or re-order your favorite specialties</p>
+    </div>
+    <a href="{{ url_for('menu') }}" class="btn btn-primary btn-sm">+ Order New Dishes</a>
+  </div>
+
+  {% if orders %}
+  <div style="display: flex; flex-direction: column; gap: 16px;">
+    {% for ord in orders %}
+    <div class="menu-card" style="padding: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px;">
+        
+        <div>
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+            <h3 style="font-size: 1.25rem; color: var(--secondary); margin: 0;">Order #{{ ord.id }}</h3>
+            <span class="badge badge-status status-{{ ord.status|lower }}">{{ ord.status }}</span>
+          </div>
+
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 8px;">
+            Placed on {{ ord.created_at }} • {{ ord.total_items }} dish(es)
+          </p>
+
+          <div style="display: flex; gap: 14px; font-size: 0.9rem;">
+            <span>
+              <strong>Type:</strong> 
+              {% if ord.order_type == 'DineIn' %}
+                🍽️ Dine-In (Table {{ ord.table_number }})
+              {% else %}
+                🛍️ TakeAway
+              {% endif %}
+            </span>
+            <span>
+              <strong>Amount Paid:</strong> 
+              <span style="color: var(--primary); font-weight: 700;">${{ "%.2f"|format(ord.final_amount) }}</span>
+            </span>
+            {% if ord.offer_code %}
+              <span style="color: #059669; font-weight: 600;">
+                Coupon: {{ ord.offer_code }}
+              </span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <a href="{{ url_for('check_bill', order_id=ord.id) }}" class="btn btn-outline btn-sm">
+            🧾 Check Bill & Status
+          </a>
+          <a href="{{ url_for('customer_reviews') }}" class="btn btn-secondary btn-sm">
+            ⭐ Leave Review
+          </a>
+        </div>
+
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    <div class="receipt-card" style="text-align: center; padding: 50px 20px;">
+      <div style="font-size: 3.5rem; margin-bottom: 12px;">🍽️</div>
+      <h2 style="color: var(--secondary); margin-bottom: 8px;">No Past Orders Found</h2>
+      <p style="color: var(--text-muted); margin-bottom: 20px;">You haven't placed any food orders yet. Try out our freshly prepared menu items!</p>
+      <a href="{{ url_for('menu') }}" class="btn btn-primary">Start Your Order</a>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

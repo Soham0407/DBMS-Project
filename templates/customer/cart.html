@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+{% block title %}Your Cart & Checkout - Saffron Feast{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="section-header">
+    <div>
+      <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--secondary); margin-bottom: 6px;">Your Dining Cart</h1>
+      <p>Review items, customize dining preferences (Dine-In / TakeAway), and checkout</p>
+    </div>
+    {% if cart_items %}
+    <form action="{{ url_for('clear_cart') }}" method="POST">
+      <button type="submit" class="btn btn-outline btn-sm" onclick="return confirm('Empty your cart?')">🗑️ Clear Cart</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if cart_items %}
+  <div class="cart-layout">
+    
+    <!-- LEFT: CART ITEMS LIST -->
+    <div class="cart-table-card">
+      <table class="cart-table">
+        <thead>
+          <tr>
+            <th>Dish & Customization</th>
+            <th>Price</th>
+            <th>Quantity</th>
+            <th>Total</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in cart_items %}
+          {% set cart_key = item.item_id ~ '_' ~ item.spice_level %}
+          <tr>
+            <td>
+              <div class="cart-item-info">
+                <img src="{{ item.image_url }}" alt="{{ item.name }}" class="cart-item-img">
+                <div>
+                  <div class="cart-item-name">{{ item.name }}</div>
+                  <div style="margin-top: 4px;">
+                    <!-- SPICE ATTRIBUTE DISPLAY -->
+                    {% if item.spice_level == 'Mild' %}
+                      <span class="spice-badge spice-mild">🟢 Mild</span>
+                    {% elif item.spice_level == 'Medium' %}
+                      <span class="spice-badge spice-medium">🟡 Medium</span>
+                    {% elif item.spice_level == 'Spicy' %}
+                      <span class="spice-badge spice-spicy">🟠 Spicy</span>
+                    {% else %}
+                      <span class="spice-badge spice-extra-spicy">🔴 Extra Spicy</span>
+                    {% endif %}
+
+                    {% if item.diet_type == 'veg' %}
+                      <span class="badge badge-veg" style="font-size: 0.65rem;">Veg</span>
+                    {% else %}
+                      <span class="badge badge-nonveg" style="font-size: 0.65rem;">Non-Veg</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <td>${{ "%.2f"|format(item.price) }}</td>
+
+            <td>
+              <form action="{{ url_for('update_cart') }}" method="POST" class="cart-qty-ctrl">
+                <input type="hidden" name="cart_key" value="{{ cart_key }}">
+                <button type="submit" name="action" value="decrease" class="cart-qty-btn" title="Decrease">-</button>
+                <span style="font-weight: 700; min-width: 20px; text-align: center;">{{ item.quantity }}</span>
+                <button type="submit" name="action" value="increase" class="cart-qty-btn" title="Increase">+</button>
+              </form>
+            </td>
+
+            <td style="font-weight: 700;">
+              ${{ "%.2f"|format(item.price * item.quantity) }}
+            </td>
+
+            <td>
+              <form action="{{ url_for('update_cart') }}" method="POST">
+                <input type="hidden" name="cart_key" value="{{ cart_key }}">
+                <input type="hidden" name="action" value="remove">
+                <button type="submit" style="background:none; border:none; color: #ef4444; font-size: 1.1rem; cursor:pointer;" title="Remove dish">
+                  &times;
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- PROMO CODE APPLICATION -->
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+        <h4 style="font-size: 1rem; color: var(--secondary); margin-bottom: 10px;">🎟️ Apply Promo Voucher</h4>
+        
+        {% if applied_offer %}
+          <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; padding: 12px 16px; border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <strong style="color: #047857;">{{ applied_offer.code }}</strong> — {{ applied_offer.title }} ({{ applied_offer.discount_percent|int }}% OFF)
+            </div>
+            <form action="{{ url_for('remove_offer') }}" method="POST" style="margin: 0;">
+              <button type="submit" class="btn btn-outline btn-sm" style="color: #dc2626; border-color: #fca5a5;">Remove</button>
+            </form>
+          </div>
+        {% else %}
+          <form action="{{ url_for('apply_offer') }}" method="POST" style="display: flex; gap: 8px;">
+            <input type="text" id="coupon_input" name="offer_code" placeholder="Enter coupon code (e.g. WELCOME20)" class="form-control" style="text-transform: uppercase; font-weight: 600;" required>
+            <button type="submit" class="btn btn-secondary" style="white-space: nowrap;">Apply Code</button>
+          </form>
+
+          {% if available_offers %}
+          <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Available:</span>
+            {% for off in available_offers %}
+              <button type="button" class="badge" style="background: #ffedd5; color: var(--primary); border: 1px dashed var(--primary); cursor: pointer;" onclick="document.getElementById('coupon_input').value='{{ off.code }}'">
+                {{ off.code }} ({{ off.discount_percent|int }}% off)
+              </button>
+            {% endfor %}
+          </div>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- RIGHT: CHECKOUT & DINING PREFERENCES -->
+    <div class="summary-card">
+      <h3 style="font-size: 1.3rem; font-weight: 700; color: var(--secondary); margin-bottom: 18px;">Order Details</h3>
+
+      <form action="{{ url_for('checkout') }}" method="POST">
+
+        <!-- DINE-IN VS TAKEAWAY TOGGLE -->
+        <div class="form-group">
+          <label class="form-label">Dining Mode</label>
+          <div class="radio-toggle-group">
+            <label class="radio-toggle-card selected" id="card_type_dinein">
+              <input type="radio" name="order_type" id="order_type_dinein" value="DineIn" checked>
+              🍽️ Dine-In
+            </label>
+            <label class="radio-toggle-card" id="card_type_takeaway">
+              <input type="radio" name="order_type" id="order_type_takeaway" value="TakeAway">
+              🛍️ TakeAway
+            </label>
+          </div>
+        </div>
+
+        <!-- TABLE SELECTION (VISIBLE FOR DINE-IN) -->
+        <div class="form-group" id="table_selection_group">
+          <label class="form-label" for="table_number">Select Table Number</label>
+          <select name="table_number" id="table_number" class="form-control">
+            <option value="1">Table 1 (Indoor - 2 Person)</option>
+            <option value="2">Table 2 (Indoor - 4 Person)</option>
+            <option value="3">Table 3 (Indoor - 4 Person)</option>
+            <option value="4" selected>Table 4 (Window View - 4 Person)</option>
+            <option value="5">Table 5 (Family Booth - 6 Person)</option>
+            <option value="6">Table 6 (Patio - 2 Person)</option>
+            <option value="7">Table 7 (Patio - 4 Person)</option>
+          </select>
+          <small style="color: var(--text-muted); font-size: 0.8rem; margin-top: 4px; display: block;">
+            Waiters will serve directly to your chosen table.
+          </small>
+        </div>
+
+        <!-- SPECIAL INSTRUCTIONS -->
+        <div class="form-group">
+          <label class="form-label" for="special_instructions">Chef Instructions / Notes</label>
+          <textarea name="special_instructions" id="special_instructions" rows="2" class="form-control" placeholder="e.g. Less oil, extra napkins, serve dessert later..."></textarea>
+        </div>
+
+        <!-- BILL BREAKDOWN -->
+        <div style="border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 14px;">
+          <div class="bill-row">
+            <span>Subtotal</span>
+            <span>${{ "%.2f"|format(subtotal) }}</span>
+          </div>
+
+          {% if discount_amount > 0 %}
+          <div class="bill-row" style="color: #059669; font-weight: 600;">
+            <span>Coupon Discount ({{ applied_offer.code }})</span>
+            <span>-${{ "%.2f"|format(discount_amount) }}</span>
+          </div>
+          {% endif %}
+
+          <div class="bill-row" style="color: var(--text-muted); font-size: 0.85rem;">
+            <span>Estimated Prep Time</span>
+            <span>~20 mins</span>
+          </div>
+
+          <div class="bill-total-row">
+            <span>Total Payable</span>
+            <span style="color: var(--primary);">${{ "%.2f"|format(final_total) }}</span>
+          </div>
+        </div>
+
+        <!-- CHECKOUT BUTTON -->
+        {% if current_user.id %}
+          <button type="submit" class="btn btn-primary btn-block" style="margin-top: 20px; font-size: 1.05rem; padding: 12px;">
+            Place Order (${{ "%.2f"|format(final_total) }}) &rarr;
+          </button>
+        {% else %}
+          <div style="margin-top: 20px;">
+            <a href="{{ url_for('login') }}" class="btn btn-primary btn-block">
+              Log in to Place Order
+            </a>
+            <p style="text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 8px;">
+              You can sign in with 1-click test credentials.
+            </p>
+          </div>
+        {% endif %}
+
+      </form>
+    </div>
+
+  </div>
+  {% else %}
+    <!-- EMPTY CART STATE -->
+    <div class="receipt-card" style="text-align: center; padding: 50px 20px;">
+      <div style="font-size: 4rem; margin-bottom: 12px;">🛒</div>
+      <h2 style="color: var(--secondary); margin-bottom: 8px;">Your Cart is Empty</h2>
+      <p style="color: var(--text-muted); margin-bottom: 24px; max-width: 400px; margin-left: auto; margin-right: auto;">
+        You haven't added any dishes yet. Discover our chef special curries, crispy starters, and stone-baked pizzas!
+      </p>
+      <a href="{{ url_for('menu') }}" class="btn btn-primary" style="padding: 12px 28px;">
+        Browse Restaurant Menu
+      </a>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

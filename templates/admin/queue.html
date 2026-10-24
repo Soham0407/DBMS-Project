@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}Queue Waitlist Control - Saffron Feast{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="section-header">
+    <div>
+      <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--secondary); margin-bottom: 6px;">
+        Table Waitlist & Queue Control
+      </h1>
+      <p>Monitor dining table queue, seat waiting customer parties, and maintain floor occupancy</p>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--secondary); margin-bottom: 16px;">
+      Live Customer Queue
+    </h3>
+
+    {% if queue_list %}
+    <div style="overflow-x: auto;">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Token #</th>
+            <th>Customer Name</th>
+            <th>Party Size</th>
+            <th>Registered At</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for q in queue_list %}
+          <tr>
+            <td>
+              <span style="font-size: 1.15rem; font-weight: 800; color: var(--primary);">
+                #{{ q.token_number }}
+              </span>
+            </td>
+            <td><strong>{{ q.customer_name }}</strong></td>
+            <td>
+              <span class="badge" style="background:#f1f5f9; color:var(--secondary); font-size: 0.85rem;">
+                👥 {{ q.party_size }} Guests
+              </span>
+            </td>
+            <td style="font-size: 0.85rem; color: var(--text-muted);">{{ q.created_at }}</td>
+            <td>
+              {% if q.status == 'Waiting' %}
+                <span class="badge badge-status status-pending">⏳ Waiting</span>
+              {% elif q.status == 'Seated' %}
+                <span class="badge badge-status status-completed">✅ Seated</span>
+              {% else %}
+                <span class="badge badge-status status-cancelled">❌ Cancelled</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if q.status == 'Waiting' %}
+              <div style="display: flex; gap: 8px;">
+                <form action="{{ url_for('seat_customer', queue_id=q.id) }}" method="POST">
+                  <button type="submit" class="btn btn-success btn-sm">
+                    🪑 Seat Table
+                  </button>
+                </form>
+                <form action="{{ url_for('cancel_queue_entry', queue_id=q.id) }}" method="POST">
+                  <button type="submit" class="btn btn-danger btn-sm">
+                    Cancel
+                  </button>
+                </form>
+              </div>
+              {% else %}
+                <span style="color: var(--text-muted); font-size: 0.85rem;">Archived</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <p style="color: var(--text-muted); text-align: center; padding: 30px;">
+        No customers currently in queue.
+      </p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

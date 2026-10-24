@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% block title %}Kitchen Orders Board - Saffron Feast{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="section-header">
+    <div>
+      <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--secondary); margin-bottom: 6px;">
+        Kitchen & Server Orders Board
+      </h1>
+      <p>Manage incoming customer food orders, monitor spice customizations, and update fulfillment statuses</p>
+    </div>
+  </div>
+
+  <!-- STATUS FILTER TABS -->
+  <div class="filter-bar" style="margin-bottom: 24px;">
+    <div class="category-pills">
+      <a href="{{ url_for('admin_orders', status='All') }}" 
+         class="cat-pill {% if current_status == 'All' %}active{% endif %}">
+        All Orders
+      </a>
+      <a href="{{ url_for('admin_orders', status='Pending') }}" 
+         class="cat-pill {% if current_status == 'Pending' %}active{% endif %}" style="border-left: 3px solid #f59e0b;">
+        ⏳ Pending
+      </a>
+      <a href="{{ url_for('admin_orders', status='Preparing') }}" 
+         class="cat-pill {% if current_status == 'Preparing' %}active{% endif %}" style="border-left: 3px solid #0284c7;">
+        👨‍🍳 Preparing
+      </a>
+      <a href="{{ url_for('admin_orders', status='Ready') }}" 
+         class="cat-pill {% if current_status == 'Ready' %}active{% endif %}" style="border-left: 3px solid #8b5cf6;">
+        🔔 Ready to Serve
+      </a>
+      <a href="{{ url_for('admin_orders', status='Completed') }}" 
+         class="cat-pill {% if current_status == 'Completed' %}active{% endif %}" style="border-left: 3px solid #10b981;">
+        ✅ Completed
+      </a>
+      <a href="{{ url_for('admin_orders', status='Cancelled') }}" 
+         class="cat-pill {% if current_status == 'Cancelled' %}active{% endif %}" style="border-left: 3px solid #ef4444;">
+        ❌ Cancelled
+      </a>
+    </div>
+  </div>
+
+  <!-- ORDERS LIST -->
+  {% if orders_data %}
+  <div style="display: flex; flex-direction: column; gap: 20px;">
+    {% for entry in orders_data %}
+    {% set ord = entry.order %}
+    {% set items = entry.order_items %}
+    <div class="admin-card" style="border-left: 6px solid {% if ord.status == 'Pending' %}#f59e0b{% elif ord.status == 'Preparing' %}#0284c7{% elif ord.status == 'Ready' %}#8b5cf6{% elif ord.status == 'Completed' %}#10b981{% else %}#ef4444{% endif %};">
+      
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border-color); margin-bottom: 14px;">
+        
+        <div>
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+            <h3 style="font-size: 1.35rem; color: var(--secondary); margin: 0;">Order #{{ ord.id }}</h3>
+            <span class="badge badge-status status-{{ ord.status|lower }}">{{ ord.status }}</span>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">{{ ord.created_at }}</span>
+          </div>
+
+          <div style="font-size: 0.95rem;">
+            <strong>Customer:</strong> {{ ord.customer_name }} • 
+            <span style="color: var(--text-muted);">Phone: {{ ord.customer_phone or 'N/A' }}</span>
+          </div>
+
+          <div style="margin-top: 4px; font-size: 0.95rem;">
+            <strong>Dining Mode:</strong>
+            {% if ord.order_type == 'DineIn' %}
+              <span style="color: var(--primary); font-weight: 700;">🍽️ Dine-In (Table {{ ord.table_number }})</span>
+            {% else %}
+              <span style="color: var(--secondary); font-weight: 700;">🛍️ Express TakeAway</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- TOTAL & QUICK BILL LINK -->
+        <div style="text-align: right;">
+          <div style="font-size: 1.4rem; font-weight: 800; color: var(--secondary);">
+            ${{ "%.2f"|format(ord.final_amount) }}
+          </div>
+          {% if ord.discount_amount > 0 %}
+            <div style="font-size: 0.8rem; color: #059669;">Promo: {{ ord.offer_code }} (-${{ "%.2f"|format(ord.discount_amount) }})</div>
+          {% endif %}
+          <a href="{{ url_for('check_bill', order_id=ord.id) }}" target="_blank" class="btn btn-outline btn-sm" style="margin-top: 6px;">
+            🧾 View / Print Bill
+          </a>
+        </div>
+
+      </div>
+
+      <!-- ITEMS ORDERED WITH SPICE CUSTOMIZATIONS -->
+      <div style="margin-bottom: 16px;">
+        <h4 style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Dishes to Prepare:</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px;">
+          {% for item in items %}
+          <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px;">
+            <div style="display: flex; justify-content: space-between; font-weight: 600; color: var(--secondary);">
+              <span>{{ item.dish_name }}</span>
+              <span>x {{ item.quantity }}</span>
+            </div>
+            <div style="margin-top: 4px;">
+              {% if item.spice_level == 'Mild' %}
+                <span class="spice-badge spice-mild">🟢 Mild</span>
+              {% elif item.spice_level == 'Medium' %}
+                <span class="spice-badge spice-medium">🟡 Medium</span>
+              {% elif item.spice_level == 'Spicy' %}
+                <span class="spice-badge spice-spicy">🟠 Spicy</span>
+              {% else %}
+                <span class="spice-badge spice-extra-spicy">🔴 Extra Spicy</span>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      {% if ord.special_instructions %}
+      <div style="background: #fffbeb; border-left: 3px solid #f59e0b; padding: 10px 14px; margin-bottom: 16px; font-size: 0.88rem; color: #92400e;">
+        <strong>Chef Special Note:</strong> {{ ord.special_instructions }}
+      </div>
+      {% endif %}
+
+      <!-- STATUS TRANSITION BUTTONS -->
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; background: #f8fafc; padding: 12px; border-radius: var(--radius-sm);">
+        <span style="font-size: 0.88rem; font-weight: 600; color: var(--text-muted);">
+          Update Status:
+        </span>
+        
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          {% if ord.status != 'Preparing' and ord.status != 'Completed' and ord.status != 'Cancelled' %}
+          <form action="{{ url_for('update_order_status', order_id=ord.id) }}" method="POST">
+            <input type="hidden" name="status" value="Preparing">
+            <button type="submit" class="btn btn-outline btn-sm" style="color: #0284c7; border-color: #0284c7;">
+              👨‍🍳 Start Preparing
+            </button>
+          </form>
+          {% endif %}
+
+          {% if ord.status != 'Ready' and ord.status != 'Completed' and ord.status != 'Cancelled' %}
+          <form action="{{ url_for('update_order_status', order_id=ord.id) }}" method="POST">
+            <input type="hidden" name="status" value="Ready">
+            <button type="submit" class="btn btn-outline btn-sm" style="color: #8b5cf6; border-color: #8b5cf6;">
+              🔔 Mark as Ready
+            </button>
+          </form>
+          {% endif %}
+
+          {% if ord.status != 'Completed' and ord.status != 'Cancelled' %}
+          <form action="{{ url_for('update_order_status', order_id=ord.id) }}" method="POST">
+            <input type="hidden" name="status" value="Completed">
+            <button type="submit" class="btn btn-success btn-sm">
+              ✅ Mark Completed
+            </button>
+          </form>
+          {% endif %}
+
+          {% if ord.status != 'Cancelled' and ord.status != 'Completed' %}
+          <form action="{{ url_for('update_order_status', order_id=ord.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this order?');">
+            <input type="hidden" name="status" value="Cancelled">
+            <button type="submit" class="btn btn-danger btn-sm">
+              Cancel Order
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    <div class="receipt-card" style="text-align: center; padding: 40px;">
+      <p style="color: var(--text-muted); font-size: 1.05rem;">No orders found with status '{{ current_status }}'.</p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

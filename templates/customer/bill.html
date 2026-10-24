@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% block title %}Bill Receipt #{{ order.id }} - Saffron Feast{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="no-print" style="max-width: 650px; margin: 0 auto 16px; display: flex; justify-content: space-between; align-items: center;">
+    <a href="{{ url_for('my_orders') }}" class="btn btn-outline btn-sm">&larr; Back to Orders</a>
+    <div style="display: flex; gap: 8px;">
+      <button onclick="window.print()" class="btn btn-secondary btn-sm">🖨️ Print Bill</button>
+      <a href="{{ url_for('customer_reviews') }}" class="btn btn-outline btn-sm">⭐ Review Experience</a>
+    </div>
+  </div>
+
+  <div class="receipt-card">
+    
+    <!-- RECEIPT HEADER -->
+    <div class="receipt-header">
+      <div style="font-size: 2.2rem; margin-bottom: 6px;">🍽️</div>
+      <h1 class="receipt-title">Saffron Feast Restaurant</h1>
+      <p style="color: var(--text-muted); font-size: 0.88rem;">Official Dining Bill & Order Invoice</p>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">124 Gourmet Boulevard • Tel: +1 (555) 019-2834</p>
+    </div>
+
+    <!-- LIVE KITCHEN STATUS PROGRESS BAR -->
+    <div class="no-print" style="margin-bottom: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+          Live Order Status
+        </span>
+        <span class="badge badge-status status-{{ order.status|lower }}">
+          {{ order.status }}
+        </span>
+      </div>
+
+      <div class="receipt-status-tracker">
+        <div class="tracker-step {% if order.status in ['Pending', 'Preparing', 'Ready', 'Completed'] %}active{% endif %}">
+          1. Order Placed
+        </div>
+        <div class="tracker-step {% if order.status in ['Preparing', 'Ready', 'Completed'] %}active{% endif %}">
+          2. In Kitchen
+        </div>
+        <div class="tracker-step {% if order.status in ['Ready', 'Completed'] %}active{% endif %}">
+          3. Food Ready
+        </div>
+        <div class="tracker-step {% if order.status == 'Completed' %}active{% endif %}">
+          4. Served / Completed
+        </div>
+      </div>
+    </div>
+
+    <!-- ORDER METADATA DETAILS -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); font-size: 0.92rem;">
+      <div>
+        <p><strong>Order ID:</strong> #{{ order.id }}</p>
+        <p><strong>Date & Time:</strong> {{ order.created_at }}</p>
+        <p><strong>Dining Mode:</strong> 
+          {% if order.order_type == 'DineIn' %}
+            <span style="color: var(--primary); font-weight: 700;">🍽️ Dine-In (Table {{ order.table_number }})</span>
+          {% else %}
+            <span style="color: var(--secondary); font-weight: 700;">🛍️ Express TakeAway</span>
+          {% endif %}
+        </p>
+      </div>
+
+      <div>
+        <p><strong>Customer:</strong> {{ order.customer_name }}</p>
+        <p><strong>Contact:</strong> {{ order.customer_phone or 'N/A' }}</p>
+        <p><strong>Email:</strong> {{ order.customer_email }}</p>
+      </div>
+    </div>
+
+    <!-- ITEMIZED BILL TABLE -->
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+      <thead>
+        <tr style="border-bottom: 2px solid var(--border-color); text-align: left; font-size: 0.85rem; color: var(--text-muted);">
+          <th style="padding: 8px 0;">Item & Customization</th>
+          <th style="padding: 8px 0; text-align: center;">Qty</th>
+          <th style="padding: 8px 0; text-align: right;">Rate</th>
+          <th style="padding: 8px 0; text-align: right;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr style="border-bottom: 1px solid var(--border-color); font-size: 0.92rem;">
+          <td style="padding: 10px 0;">
+            <strong>{{ item.dish_name }}</strong>
+            <div style="font-size: 0.78rem; margin-top: 2px;">
+              {% if item.spice_level == 'Mild' %}
+                <span class="spice-badge spice-mild">Mild</span>
+              {% elif item.spice_level == 'Medium' %}
+                <span class="spice-badge spice-medium">Medium</span>
+              {% elif item.spice_level == 'Spicy' %}
+                <span class="spice-badge spice-spicy">Spicy</span>
+              {% else %}
+                <span class="spice-badge spice-extra-spicy">Extra Spicy</span>
+              {% endif %}
+              {% if item.diet_type == 'veg' %}
+                <span style="color: var(--veg-color); font-weight: 600;">● Veg</span>
+              {% else %}
+                <span style="color: var(--nonveg-color); font-weight: 600;">▲ Non-Veg</span>
+              {% endif %}
+            </div>
+          </td>
+          <td style="padding: 10px 0; text-align: center;">{{ item.quantity }}</td>
+          <td style="padding: 10px 0; text-align: right;">${{ "%.2f"|format(item.price_per_unit) }}</td>
+          <td style="padding: 10px 0; text-align: right; font-weight: 600;">${{ "%.2f"|format(item.item_total) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- SPECIAL NOTES -->
+    {% if order.special_instructions %}
+    <div style="background: #f8fafc; border-left: 3px solid var(--primary); padding: 10px 14px; margin-bottom: 20px; font-size: 0.85rem;">
+      <strong>Chef Notes:</strong> {{ order.special_instructions }}
+    </div>
+    {% endif %}
+
+    <!-- BILL TOTALS -->
+    <div style="margin-left: auto; max-width: 300px;">
+      <div class="bill-row">
+        <span>Items Subtotal:</span>
+        <span>${{ "%.2f"|format(order.total_amount) }}</span>
+      </div>
+
+      {% if order.discount_amount > 0 %}
+      <div class="bill-row" style="color: #059669; font-weight: 600;">
+        <span>Promo Discount ({{ order.offer_code }}):</span>
+        <span>-${{ "%.2f"|format(order.discount_amount) }}</span>
+      </div>
+      {% endif %}
+
+      <div class="bill-total-row">
+        <span>Total Paid:</span>
+        <span style="color: var(--primary);">${{ "%.2f"|format(order.final_amount) }}</span>
+      </div>
+    </div>
+
+    <!-- RECEIPT FOOTER -->
+    <div style="text-align: center; margin-top: 35px; padding-top: 20px; border-top: 1px dashed var(--border-color); font-size: 0.85rem; color: var(--text-muted);">
+      <p>Thank you for dining with Saffron Feast!</p>
+      <p style="margin-top: 4px;">Please retain this bill for your dining records.</p>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

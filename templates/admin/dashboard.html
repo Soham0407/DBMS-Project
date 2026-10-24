@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% block title %}Restaurant Admin Dashboard - Saffron Feast{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <!-- ADMIN TITLE & ACTION -->
+  <div class="section-header">
+    <div>
+      <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--secondary); margin-bottom: 6px;">
+        Restaurant Operations Dashboard
+      </h1>
+      <p>Real-time analytics, kitchen order stream, and staff management overview</p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <a href="{{ url_for('admin_orders') }}" class="btn btn-primary btn-sm">📋 Kitchen Orders</a>
+      <a href="{{ url_for('admin_menu') }}" class="btn btn-secondary btn-sm">+ Add Menu Item</a>
+    </div>
+  </div>
+
+  <!-- METRIC KPI CARDS -->
+  <div class="grid-4" style="margin-bottom: 30px;">
+    
+    <div class="admin-card" style="border-left: 4px solid var(--primary);">
+      <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+        Total Revenue
+      </div>
+      <div style="font-size: 2rem; font-weight: 800; color: var(--secondary); margin: 6px 0;">
+        ${{ "%.2f"|format(total_revenue) }}
+      </div>
+      <div style="font-size: 0.85rem; color: #059669;">Across all completed & active orders</div>
+    </div>
+
+    <div class="admin-card" style="border-left: 4px solid #f59e0b;">
+      <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+        Active / Pending Orders
+      </div>
+      <div style="font-size: 2rem; font-weight: 800; color: #d97706; margin: 6px 0;">
+        {{ pending_orders }}
+      </div>
+      <div style="font-size: 0.85rem; color: var(--text-muted);">In kitchen preparation queue</div>
+    </div>
+
+    <div class="admin-card" style="border-left: 4px solid #0284c7;">
+      <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+        Waiting Queue
+      </div>
+      <div style="font-size: 2rem; font-weight: 800; color: #0284c7; margin: 6px 0;">
+        {{ active_queue }}
+      </div>
+      <div style="font-size: 0.85rem; color: var(--text-muted);">Parties waiting for tables</div>
+    </div>
+
+    <div class="admin-card" style="border-left: 4px solid #8b5cf6;">
+      <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+        Restaurant Staff
+      </div>
+      <div style="font-size: 2rem; font-weight: 800; color: #8b5cf6; margin: 6px 0;">
+        {{ staff_count }}
+      </div>
+      <div style="font-size: 0.85rem; color: var(--text-muted);">Managers, Chefs & Waiters</div>
+    </div>
+
+  </div>
+
+  <div style="display: grid; grid-template-columns: 2fr 1.2fr; gap: 30px; align-items: flex-start;">
+    
+    <!-- RECENT ORDERS SECTION -->
+    <div class="admin-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-size: 1.25rem; color: var(--secondary); margin: 0;">Recent Orders</h3>
+        <a href="{{ url_for('admin_orders') }}" style="color: var(--primary); font-size: 0.9rem; font-weight: 600;">View All Orders &rarr;</a>
+      </div>
+
+      {% if recent_orders %}
+      <div style="overflow-x: auto;">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Order</th>
+              <th>Customer</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ord in recent_orders %}
+            <tr>
+              <td><strong>#{{ ord.id }}</strong></td>
+              <td>{{ ord.customer_name }}</td>
+              <td>
+                {% if ord.order_type == 'DineIn' %}
+                  <span style="font-weight: 600; color: var(--primary);">🍽️ Table {{ ord.table_number }}</span>
+                {% else %}
+                  <span style="font-weight: 600; color: var(--secondary);">🛍️ TakeAway</span>
+                {% endif %}
+              </td>
+              <td style="font-weight: 700;">${{ "%.2f"|format(ord.final_amount) }}</td>
+              <td>
+                <span class="badge badge-status status-{{ ord.status|lower }}">{{ ord.status }}</span>
+              </td>
+              <td>
+                <a href="{{ url_for('check_bill', order_id=ord.id) }}" class="btn btn-outline btn-sm">Receipt</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <p style="color: var(--text-muted); padding: 20px 0; text-align: center;">No orders recorded yet.</p>
+      {% endif %}
+    </div>
+
+    <!-- POPULAR DISHES (SQL Aggregation demo) -->
+    <div class="admin-card">
+      <h3 style="font-size: 1.25rem; color: var(--secondary); margin-bottom: 16px;">🔥 Top Selling Dishes</h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">
+        Calculated via relational aggregation: <code>GROUP BY menu_item_id ORDER BY total_sold DESC</code>
+      </p>
+
+      {% if popular_dishes %}
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        {% for dish in popular_dishes %}
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f8fafc; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+          <div>
+            <strong style="color: var(--secondary); font-size: 0.95rem;">{{ dish.name }}</strong>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">{{ dish.total_sold }} portions served</div>
+          </div>
+          <div style="font-weight: 700; color: var(--primary); font-size: 0.95rem;">
+            ${{ "%.2f"|format(dish.revenue) }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+        <p style="color: var(--text-muted);">No sales data available yet.</p>
+      {% endif %}
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

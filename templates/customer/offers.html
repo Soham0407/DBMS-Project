@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}Promotional Offers & Vouchers - Saffron Feast{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="section-header" style="text-align: center; max-width: 600px; margin: 0 auto 30px;">
+    <div>
+      <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--secondary); margin-bottom: 6px;">
+        Exclusive Offers & Discounts
+      </h1>
+      <p>Save on your dining experience! Apply these promo codes during checkout for instant discounts.</p>
+    </div>
+  </div>
+
+  {% if offers %}
+  <div class="grid-3">
+    {% for off in offers %}
+    <div class="offer-card">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+        <span class="badge" style="background: var(--primary); color: #fff; font-size: 0.82rem; padding: 4px 10px;">
+          {{ off.discount_percent|int }}% OFF
+        </span>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">
+          Valid till {{ off.valid_until or 'End of Month' }}
+        </span>
+      </div>
+
+      <h3 style="font-size: 1.35rem; color: var(--secondary); margin-bottom: 8px;">
+        {{ off.title }}
+      </h3>
+
+      <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 16px;">
+        {{ off.description }}
+      </p>
+
+      <div style="background: #fff; border: 1px dashed var(--border-color); border-radius: var(--radius-sm); padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div>
+          <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); display: block;">Coupon Code</span>
+          <span style="font-family: monospace; font-size: 1.2rem; font-weight: 800; color: var(--primary); letter-spacing: 0.05em;">{{ off.code }}</span>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" onclick="applyCouponCode('{{ off.code }}')">
+          📋 Copy
+        </button>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-muted);">
+        <span>Min. Order: <strong>${{ "%.2f"|format(off.min_order_amount) }}</strong></span>
+        <a href="{{ url_for('menu') }}" style="color: var(--primary); font-weight: 600;">Use Now &rarr;</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    <div class="receipt-card" style="text-align: center; padding: 40px;">
+      <p style="color: var(--text-muted);">No active offers at this moment. Check back soon for seasonal promotions!</p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

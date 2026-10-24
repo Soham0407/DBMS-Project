@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% block title %}Manage Offers - Saffron Feast{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="section-header">
+    <div>
+      <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--secondary); margin-bottom: 6px;">
+        Promotional Offers Management
+      </h1>
+      <p>Create discount coupon vouchers, configure minimum order thresholds, and activate or pause campaigns</p>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 360px 1fr; gap: 30px; align-items: flex-start;">
+    
+    <!-- LEFT: ADD OFFER FORM -->
+    <div class="summary-card">
+      <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--secondary); margin-bottom: 16px;">
+        + Create Promo Voucher
+      </h3>
+
+      <form action="{{ url_for('add_offer') }}" method="POST">
+        
+        <div class="form-group">
+          <label class="form-label" for="offer_code">Coupon Code (Uppercase)</label>
+          <input type="text" name="code" id="offer_code" class="form-control" placeholder="e.g. FESTIVE25" style="text-transform: uppercase; font-weight: 700;" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="offer_title">Offer Title</label>
+          <input type="text" name="title" id="offer_title" class="form-control" placeholder="e.g. 25% Festive Season Discount" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="discount_percent">Discount Percentage (%)</label>
+          <input type="number" step="1" min="1" max="100" name="discount_percent" id="discount_percent" class="form-control" placeholder="e.g. 25" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="min_order_amount">Min Order Requirement ($)</label>
+          <input type="number" step="0.01" min="0" name="min_order_amount" id="min_order_amount" class="form-control" value="0.00">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="valid_until">Valid Until</label>
+          <input type="date" name="valid_until" id="valid_until" class="form-control" value="2026-12-31">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="offer_desc">Description</label>
+          <textarea name="description" id="offer_desc" rows="2" class="form-control" placeholder="Short description for diner preview..."></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" style="padding: 10px;">
+          Publish Offer
+        </button>
+      </form>
+    </div>
+
+    <!-- RIGHT: EXISTING OFFERS TABLE -->
+    <div class="admin-card">
+      <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--secondary); margin-bottom: 16px;">
+        Active Promo Campaigns
+      </h3>
+
+      <div style="overflow-x: auto;">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Title</th>
+              <th>Discount</th>
+              <th>Min. Order</th>
+              <th>Valid Till</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for off in offers %}
+            <tr>
+              <td>
+                <span class="badge" style="background:#ffedd5; color:var(--primary); font-family:monospace; font-size: 0.9rem;">
+                  {{ off.code }}
+                </span>
+              </td>
+              <td><strong>{{ off.title }}</strong></td>
+              <td style="font-weight: 700; color: #059669;">{{ off.discount_percent|int }}% OFF</td>
+              <td>${{ "%.2f"|format(off.min_order_amount) }}</td>
+              <td style="font-size: 0.85rem; color: var(--text-muted);">{{ off.valid_until }}</td>
+              <td>
+                {% if off.is_active %}
+                  <span class="badge badge-status status-completed">Active</span>
+                {% else %}
+                  <span class="badge badge-status status-cancelled">Inactive</span>
+                {% endif %}
+              </td>
+              <td>
+                <div style="display: flex; gap: 6px;">
+                  <form action="{{ url_for('toggle_offer', offer_id=off.id) }}" method="POST">
+                    <button type="submit" class="btn btn-outline btn-sm">
+                      {% if off.is_active %}Deactivate{% else %}Activate{% endif %}
+                    </button>
+                  </form>
+                  <form action="{{ url_for('delete_offer', offer_id=off.id) }}" method="POST" onsubmit="return confirm('Delete this coupon?');">
+                    <button type="submit" class="btn btn-danger btn-sm">
+                      🗑️
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

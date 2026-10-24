@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% block title %}Menu - Saffron Feast Restaurant{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <!-- PAGE HEADER -->
+  <div class="section-header">
+    <div>
+      <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--secondary); margin-bottom: 6px;">Our Culinary Menu</h1>
+      <p>Explore handcrafted recipes, customize spice levels, and order fresh for Dine-In or TakeAway</p>
+    </div>
+  </div>
+
+  <!-- FILTER & SEARCH BAR -->
+  <div class="filter-bar">
+    <!-- Category Filter Pills -->
+    <div class="category-pills">
+      <a href="{{ url_for('menu', diet=selected_diet, search=search_query) }}" 
+         class="cat-pill {% if not selected_category %}active{% endif %}">
+        ✨ All Dishes
+      </a>
+      {% for cat in categories %}
+      <a href="{{ url_for('menu', category=cat.id, diet=selected_diet, search=search_query) }}" 
+         class="cat-pill {% if selected_category == cat.id %}active{% endif %}">
+        {{ cat.icon }} {{ cat.name }}
+      </a>
+      {% endfor %}
+    </div>
+
+    <!-- Diet & Search Filters -->
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <!-- Veg/Non-Veg Toggle -->
+      <div style="display: flex; gap: 6px;">
+        <a href="{{ url_for('menu', category=selected_category, search=search_query) }}" 
+           class="btn btn-outline btn-sm {% if not selected_diet %}btn-primary{% endif %}" style="padding: 6px 10px;">
+          All Diet
+        </a>
+        <a href="{{ url_for('menu', category=selected_category, diet='veg', search=search_query) }}" 
+           class="btn btn-outline btn-sm {% if selected_diet == 'veg' %}btn-success{% endif %}" style="padding: 6px 10px;">
+          🟢 Pure Veg
+        </a>
+        <a href="{{ url_for('menu', category=selected_category, diet='non-veg', search=search_query) }}" 
+           class="btn btn-outline btn-sm {% if selected_diet == 'non-veg' %}btn-danger{% endif %}" style="padding: 6px 10px;">
+          🔺 Non-Veg
+        </a>
+      </div>
+
+      <!-- Search Input -->
+      <form action="{{ url_for('menu') }}" method="GET" class="search-box">
+        {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category }}">{% endif %}
+        {% if selected_diet %}<input type="hidden" name="diet" value="{{ selected_diet }}">{% endif %}
+        <input type="text" name="search" value="{{ search_query }}" placeholder="Search dish..." class="search-input">
+        <button type="submit" class="btn btn-primary btn-sm">Search</button>
+        {% if search_query %}
+          <a href="{{ url_for('menu', category=selected_category, diet=selected_diet) }}" class="btn btn-outline btn-sm">Clear</a>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  <!-- MENU ITEMS GRID -->
+  {% if menu_items %}
+  <div class="grid-3">
+    {% for item in menu_items %}
+    <div class="menu-card" style="{% if not item.is_available %}opacity: 0.6; filter: grayscale(40%);{% endif %}">
+      
+      <div class="menu-card-img-wrap">
+        <img src="{{ item.image_url }}" alt="{{ item.name }}" loading="lazy">
+        <div class="menu-card-badges">
+          {% if item.diet_type == 'veg' %}
+            <span class="badge badge-veg">● Pure Veg</span>
+          {% else %}
+            <span class="badge badge-nonveg">▲ Non-Veg</span>
+          {% endif %}
+          <span class="badge" style="background:#fff; color:var(--secondary);">{{ item.category_icon }} {{ item.category_name }}</span>
+        </div>
+
+        {% if not item.is_available %}
+          <div style="position: absolute; top: 10px; right: 10px; background: #ef4444; color: #fff; font-weight: 700; font-size: 0.75rem; padding: 4px 8px; border-radius: 4px;">
+            OUT OF STOCK
+          </div>
+        {% else %}
+          <div class="menu-card-price">${{ "%.2f"|format(item.price) }}</div>
+        {% endif %}
+      </div>
+
+      <div class="menu-card-body">
+        <h3 class="menu-card-title">{{ item.name }}</h3>
+        <p class="menu-card-desc">{{ item.description }}</p>
+
+        {% if item.is_available %}
+        <form action="{{ url_for('add_to_cart') }}" method="POST" class="menu-card-form">
+          <input type="hidden" name="item_id" value="{{ item.id }}">
+
+          <!-- ITEM SPICE ATTRIBUTE CUSTOMIZATION -->
+          {% if item.is_spicy_customizable %}
+          <div class="spice-selector-group">
+            <label for="spice_opt_{{ item.id }}">🌶️ Choose Spice Level:</label>
+            <select name="spice_level" id="spice_opt_{{ item.id }}" class="spice-select">
+              <option value="Mild" {% if item.default_spice_level == 'Mild' %}selected{% endif %}>🟢 Mild (Low heat)</option>
+              <option value="Medium" {% if item.default_spice_level == 'Medium' %}selected{% endif %}>🟡 Medium (Chef standard)</option>
+              <option value="Spicy" {% if item.default_spice_level == 'Spicy' %}selected{% endif %}>🟠 Spicy (Hot & flavorful)</option>
+              <option value="Extra Spicy" {% if item.default_spice_level == 'Extra Spicy' %}selected{% endif %}>🔴 Extra Spicy (Fiery)</option>
+            </select>
+          </div>
+          {% else %}
+            <input type="hidden" name="spice_level" value="Mild">
+          {% endif %}
+
+          <div class="menu-card-actions">
+            <input type="number" name="quantity" value="1" min="1" max="20" class="qty-input" title="Quantity">
+            <button type="submit" class="btn btn-primary btn-block btn-sm">
+              + Add to Cart
+            </button>
+          </div>
+        </form>
+        {% else %}
+          <div style="margin-top: auto; padding-top: 14px; text-align: center; color: var(--text-muted); font-weight: 600; font-size: 0.9rem;">
+            Currently Unavailable
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    <div class="receipt-card" style="text-align: center; padding: 40px;">
+      <div style="font-size: 3rem; margin-bottom: 12px;">🔍</div>
+      <h3 style="color: var(--secondary); margin-bottom: 8px;">No dishes found matching your criteria</h3>
+      <p style="color: var(--text-muted); margin-bottom: 20px;">Try clearing search filters or selecting another category.</p>
+      <a href="{{ url_for('menu') }}" class="btn btn-primary">Reset Filters</a>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

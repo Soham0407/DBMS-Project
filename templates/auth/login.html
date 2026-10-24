@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Login - Saffron Feast{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 480px; margin-top: 20px;">
+  <div class="receipt-card" style="padding: 30px;">
+    <div style="text-align: center; margin-bottom: 24px;">
+      <h2 style="font-size: 1.8rem; color: var(--secondary); margin-bottom: 6px;">Welcome Back</h2>
+      <p style="color: var(--text-muted); font-size: 0.95rem;">Sign in to your customer or staff account</p>
+    </div>
+
+    <!-- Quick Demo Logins for Viva / Evaluation -->
+    <div style="background-color: #f1f5f9; border-radius: var(--radius-sm); padding: 14px; margin-bottom: 24px;">
+      <p style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">
+        💡 1-Click Demo Login (For DBMS Viva Demo)
+      </p>
+      <div style="display: flex; gap: 10px;">
+        <a href="{{ url_for('quick_login', role='customer') }}" class="btn btn-outline btn-sm btn-block" style="background:#fff;">
+          👤 Customer Demo
+        </a>
+        <a href="{{ url_for('quick_login', role='admin') }}" class="btn btn-secondary btn-sm btn-block">
+          ⚙️ Admin / Staff Demo
+        </a>
+      </div>
+    </div>
+
+    <!-- Standard Login Form -->
+    <form action="{{ url_for('login') }}" method="POST">
+      <div class="form-group">
+        <label class="form-label" for="email">Email Address</label>
+        <input type="email" id="email" name="email" class="form-control" placeholder="e.g. customer@gmail.com" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" required>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top: 10px; font-size: 1.05rem;">
+        Sign In
+      </button>
+    </form>
+
+    <div style="text-align: center; margin-top: 20px; font-size: 0.9rem; color: var(--text-muted);">
+      Don't have an account yet? 
+      <a href="{{ url_for('signup') }}" style="color: var(--primary); font-weight: 600;">Sign up here</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

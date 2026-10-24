@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Saffron Feast - Food Ordering & Restaurant Management{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍽️</text></svg>">
+</head>
+<body>
+
+  <!-- ADMIN SUB-NAVBAR (Visible only to Admin/Staff or when viewing admin sections) -->
+  {% if current_user.role in ['admin', 'staff'] %}
+  <div class="admin-bar no-print">
+    <div class="container admin-bar-inner">
+      <div>
+        <strong>⚙️ Staff Portal:</strong> Logged in as {{ current_user.name }} ({{ current_user.role|capitalize }})
+      </div>
+      <ul class="admin-nav-links">
+        <li><a href="{{ url_for('admin_dashboard') }}">📊 Dashboard</a></li>
+        <li><a href="{{ url_for('admin_orders') }}">📋 Orders Board</a></li>
+        <li><a href="{{ url_for('admin_menu') }}">🍲 Menu Items</a></li>
+        <li><a href="{{ url_for('admin_staff') }}">👥 Staff</a></li>
+        <li><a href="{{ url_for('admin_queue') }}">⏳ Queue</a></li>
+        <li><a href="{{ url_for('admin_offers') }}">🎟️ Offers</a></li>
+      </ul>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- MAIN CUSTOMER NAVIGATION HEADER -->
+  <header class="navbar no-print">
+    <div class="container nav-wrapper">
+      <a href="{{ url_for('index') }}" class="brand-logo">
+        <span>Saffron</span>Feast
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}">Home</a></li>
+        <li><a href="{{ url_for('menu') }}" class="{% if request.endpoint == 'menu' %}active{% endif %}">Menu</a></li>
+        <li><a href="{{ url_for('customer_queue') }}" class="{% if request.endpoint == 'customer_queue' %}active{% endif %}">Table Queue</a></li>
+        <li><a href="{{ url_for('customer_offers') }}" class="{% if request.endpoint == 'customer_offers' %}active{% endif %}">Offers %</a></li>
+        <li><a href="{{ url_for('customer_reviews') }}" class="{% if request.endpoint == 'customer_reviews' %}active{% endif %}">Reviews</a></li>
+        {% if current_user.id %}
+          <li><a href="{{ url_for('my_orders') }}" class="{% if request.endpoint == 'my_orders' %}active{% endif %}">My Orders</a></li>
+        {% endif %}
+      </ul>
+
+      <div class="nav-actions">
+        <!-- Cart Badge -->
+        <a href="{{ url_for('view_cart') }}" class="cart-btn-badge" id="nav-cart-btn">
+          🛒 Cart
+          <span class="cart-count">{{ cart_count }}</span>
+        </a>
+
+        <!-- User Authentication Links -->
+        {% if current_user.id %}
+          <span style="font-size: 0.9rem; font-weight: 600; color: var(--secondary);">Hi, {{ current_user.name.split()[0] }}</span>
+          <a href="{{ url_for('logout') }}" class="btn btn-outline btn-sm">Logout</a>
+        {% else %}
+          <a href="{{ url_for('login') }}" class="btn btn-outline btn-sm">Login</a>
+          <a href="{{ url_for('signup') }}" class="btn btn-primary btn-sm">Sign Up</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <!-- FLASH MESSAGES -->
+  <div class="container alert-container no-print" style="margin-top: 20px;">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">
+            <span>{{ message }}</span>
+            <button type="button" onclick="this.parentElement.remove()" style="background:none; border:none; cursor:pointer; font-size:1.2rem; line-height:1;">&times;</button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <!-- MAIN BODY CONTENT -->
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer no-print">
+    <div class="container footer-inner">
+      <div>
+        <h3 style="color: #fff; margin-bottom: 8px;">Saffron Feast Restaurant</h3>
+        <p style="font-size: 0.9rem;">DBMS Project • SQLite & Flask Architecture</p>
+      </div>
+      <div>
+        <p style="font-size: 0.9rem;">Customer Dining & Server Operations Suite</p>
+        <p style="font-size: 0.85rem; color: #64748b;">Dine-In • TakeAway • Table Queue • Custom Spice Levels</p>
+      </div>
+    </div>
+    <div class="footer-copy">
+      &copy; 2026 Saffron Feast Restaurant Management System. Built for academic DBMS viva demonstration.
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
