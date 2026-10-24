@@ -9,26 +9,33 @@
 </head>
 <body>
 
-  <!-- ADMIN SUB-NAVBAR (Visible only to Admin/Staff or when viewing admin sections) -->
+  <!-- CONDITIONAL NAVIGATION: ADMIN ONLY VS CLIENT ONLY -->
   {% if current_user.role in ['admin', 'staff'] %}
-  <div class="admin-bar no-print">
-    <div class="container admin-bar-inner">
-      <div>
-        <strong>⚙️ Staff Portal:</strong> Logged in as {{ current_user.name }} ({{ current_user.role|capitalize }})
-      </div>
-      <ul class="admin-nav-links">
-        <li><a href="{{ url_for('admin_dashboard') }}">📊 Dashboard</a></li>
-        <li><a href="{{ url_for('admin_orders') }}">📋 Orders Board</a></li>
-        <li><a href="{{ url_for('admin_menu') }}">🍲 Menu Items</a></li>
-        <li><a href="{{ url_for('admin_staff') }}">👥 Staff</a></li>
-        <li><a href="{{ url_for('admin_queue') }}">⏳ Queue</a></li>
-        <li><a href="{{ url_for('admin_offers') }}">🎟️ Offers</a></li>
-      </ul>
-    </div>
-  </div>
-  {% endif %}
+  <!-- ADMIN EXCLUSIVE NAVBAR (No client options appear) -->
+  <header class="navbar admin-navbar no-print">
+    <div class="container nav-wrapper">
+      <a href="{{ url_for('admin_dashboard') }}" class="brand-logo admin-brand-logo">
+        <span>Saffron</span>Feast
+        <span class="admin-badge-pill">Staff Portal</span>
+      </a>
 
-  <!-- MAIN CUSTOMER NAVIGATION HEADER -->
+      <ul class="nav-links admin-nav-links">
+        <li><a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">📊 Dashboard</a></li>
+        <li><a href="{{ url_for('admin_orders') }}" class="{% if request.endpoint == 'admin_orders' %}active{% endif %}">📋 Orders Board</a></li>
+        <li><a href="{{ url_for('admin_menu') }}" class="{% if request.endpoint == 'admin_menu' %}active{% endif %}">🍲 Menu Items</a></li>
+        <li><a href="{{ url_for('admin_staff') }}" class="{% if request.endpoint == 'admin_staff' %}active{% endif %}">👥 Staff</a></li>
+        <li><a href="{{ url_for('admin_queue') }}" class="{% if request.endpoint == 'admin_queue' %}active{% endif %}">⏳ Queue</a></li>
+        <li><a href="{{ url_for('admin_offers') }}" class="{% if request.endpoint == 'admin_offers' %}active{% endif %}">🎟️ Offers</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <span class="admin-user-info">⚙️ {{ current_user.name }} ({{ current_user.role|capitalize }})</span>
+        <a href="{{ url_for('logout') }}" class="btn btn-outline btn-sm">Logout</a>
+      </div>
+    </div>
+  </header>
+  {% else %}
+  <!-- MAIN CUSTOMER NAVIGATION HEADER (Only visible to non-admin / client users) -->
   <header class="navbar no-print">
     <div class="container nav-wrapper">
       <a href="{{ url_for('index') }}" class="brand-logo">
@@ -64,6 +71,7 @@
       </div>
     </div>
   </header>
+  {% endif %}
 
   <!-- FLASH MESSAGES -->
   <div class="container alert-container no-print" style="margin-top: 20px;">
@@ -87,6 +95,16 @@
   <!-- FOOTER -->
   <footer class="footer no-print">
     <div class="container footer-inner">
+      {% if current_user.role in ['admin', 'staff'] %}
+      <div>
+        <h3 style="color: #fff; margin-bottom: 8px;">Saffron Feast Restaurant Management Portal</h3>
+        <p style="font-size: 0.9rem;">DBMS Project • SQLite & Flask Architecture</p>
+      </div>
+      <div>
+        <p style="font-size: 0.9rem; color: #94a3b8;">Logged in as: <strong>{{ current_user.name }}</strong> ({{ current_user.role|capitalize }})</p>
+        <p style="font-size: 0.85rem; color: #64748b;">Kitchen Orders Board • Menu Management • Staff Directory • Table Queue</p>
+      </div>
+      {% else %}
       <div>
         <h3 style="color: #fff; margin-bottom: 8px;">Saffron Feast Restaurant</h3>
         <p style="font-size: 0.9rem;">DBMS Project • SQLite & Flask Architecture</p>
@@ -95,6 +113,7 @@
         <p style="font-size: 0.9rem;">Customer Dining & Server Operations Suite</p>
         <p style="font-size: 0.85rem; color: #64748b;">Dine-In • TakeAway • Table Queue • Custom Spice Levels</p>
       </div>
+      {% endif %}
     </div>
     <div class="footer-copy">
       &copy; 2026 Saffron Feast Restaurant Management System. Built for academic DBMS viva demonstration.

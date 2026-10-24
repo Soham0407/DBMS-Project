@@ -37,16 +37,30 @@
       <div style="background: #fff; border: 1px dashed var(--border-color); border-radius: var(--radius-sm); padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <div>
           <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); display: block;">Coupon Code</span>
-          <span style="font-family: monospace; font-size: 1.2rem; font-weight: 800; color: var(--primary); letter-spacing: 0.05em;">{{ off.code }}</span>
+          {% if off.code == 'WELCOME20' and used_welcome20 %}
+            <span style="font-family: monospace; font-size: 1.2rem; font-weight: 800; color: #94a3b8; letter-spacing: 0.05em; text-decoration: line-through;">{{ off.code }}</span>
+          {% else %}
+            <span style="font-family: monospace; font-size: 1.2rem; font-weight: 800; color: var(--primary); letter-spacing: 0.05em;">{{ off.code }}</span>
+          {% endif %}
         </div>
-        <button type="button" class="btn btn-outline btn-sm" onclick="applyCouponCode('{{ off.code }}')">
-          📋 Copy
-        </button>
+        {% if off.code == 'WELCOME20' and used_welcome20 %}
+          <span class="badge" style="background: #fee2e2; color: #b91c1c; font-size: 0.78rem;">
+            Already Redeemed
+          </span>
+        {% else %}
+          <button type="button" class="btn btn-outline btn-sm" onclick="applyCouponCode('{{ off.code }}')">
+            📋 Copy
+          </button>
+        {% endif %}
       </div>
 
       <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-muted);">
         <span>Min. Order: <strong>₹{{ "%.2f"|format(off.min_order_amount) }}</strong></span>
-        <a href="{{ url_for('menu') }}" style="color: var(--primary); font-weight: 600;">Use Now &rarr;</a>
+        {% if off.code == 'WELCOME20' and used_welcome20 %}
+          <span style="color: #94a3b8; font-weight: 500;">First Order Only (Used)</span>
+        {% else %}
+          <a href="{{ url_for('menu') }}" style="color: var(--primary); font-weight: 600;">Use Now &rarr;</a>
+        {% endif %}
       </div>
     </div>
     {% endfor %}

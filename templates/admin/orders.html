@@ -123,13 +123,14 @@
       {% endif %}
 
       <!-- STATUS TRANSITION BUTTONS -->
+      {% if ord.status not in ['Completed', 'Cancelled'] %}
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; background: #f8fafc; padding: 12px; border-radius: var(--radius-sm);">
         <span style="font-size: 0.88rem; font-weight: 600; color: var(--text-muted);">
           Update Status:
         </span>
         
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          {% if ord.status != 'Preparing' and ord.status != 'Completed' and ord.status != 'Cancelled' %}
+          {% if ord.status == 'Pending' %}
           <form action="{{ url_for('update_order_status', order_id=ord.id) }}" method="POST">
             <input type="hidden" name="status" value="Preparing">
             <button type="submit" class="btn btn-outline btn-sm" style="color: #0284c7; border-color: #0284c7;">
@@ -138,7 +139,7 @@
           </form>
           {% endif %}
 
-          {% if ord.status != 'Ready' and ord.status != 'Completed' and ord.status != 'Cancelled' %}
+          {% if ord.status == 'Preparing' %}
           <form action="{{ url_for('update_order_status', order_id=ord.id) }}" method="POST">
             <input type="hidden" name="status" value="Ready">
             <button type="submit" class="btn btn-outline btn-sm" style="color: #8b5cf6; border-color: #8b5cf6;">
@@ -147,7 +148,7 @@
           </form>
           {% endif %}
 
-          {% if ord.status != 'Completed' and ord.status != 'Cancelled' %}
+          {% if ord.status in ['Preparing', 'Ready', 'Pending'] %}
           <form action="{{ url_for('update_order_status', order_id=ord.id) }}" method="POST">
             <input type="hidden" name="status" value="Completed">
             <button type="submit" class="btn btn-success btn-sm">
@@ -156,16 +157,25 @@
           </form>
           {% endif %}
 
-          {% if ord.status != 'Cancelled' and ord.status != 'Completed' %}
           <form action="{{ url_for('update_order_status', order_id=ord.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this order?');">
             <input type="hidden" name="status" value="Cancelled">
             <button type="submit" class="btn btn-danger btn-sm">
               Cancel Order
             </button>
           </form>
-          {% endif %}
         </div>
       </div>
+      {% elif ord.status == 'Completed' %}
+      <div style="display: flex; justify-content: space-between; align-items: center; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.88rem;">
+        <span style="color: #047857; font-weight: 700;">✅ Order Completed & Fulfilled</span>
+        <span style="color: #065f46; font-size: 0.82rem;">All items served • Bill settled</span>
+      </div>
+      {% else %}
+      <div style="display: flex; justify-content: space-between; align-items: center; background: #fef2f2; border: 1px solid #fecaca; padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.88rem;">
+        <span style="color: #dc2626; font-weight: 700;">❌ Order Cancelled</span>
+        <span style="color: #991b1b; font-size: 0.82rem;">Archived order</span>
+      </div>
+      {% endif %}
 
     </div>
     {% endfor %}

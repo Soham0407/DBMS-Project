@@ -5,11 +5,18 @@
 <div class="container">
 
   <div class="no-print" style="max-width: 650px; margin: 0 auto 16px; display: flex; justify-content: space-between; align-items: center;">
-    <a href="{{ url_for('my_orders') }}" class="btn btn-outline btn-sm">&larr; Back to Orders</a>
-    <div style="display: flex; gap: 8px;">
-      <button onclick="window.print()" class="btn btn-secondary btn-sm">🖨️ Print Bill</button>
-      <a href="{{ url_for('customer_reviews') }}" class="btn btn-outline btn-sm">⭐ Review Experience</a>
-    </div>
+    {% if current_user.role in ['admin', 'staff'] %}
+      <a href="{{ url_for('admin_orders') }}" class="btn btn-outline btn-sm">&larr; Back to Orders Board</a>
+      <div style="display: flex; gap: 8px;">
+        <button onclick="window.print()" class="btn btn-secondary btn-sm">🖨️ Print Bill</button>
+      </div>
+    {% else %}
+      <a href="{{ url_for('my_orders') }}" class="btn btn-outline btn-sm">&larr; Back to Orders</a>
+      <div style="display: flex; gap: 8px;">
+        <button onclick="window.print()" class="btn btn-secondary btn-sm">🖨️ Print Bill</button>
+        <a href="{{ url_for('customer_reviews') }}" class="btn btn-outline btn-sm">⭐ Review Experience</a>
+      </div>
+    {% endif %}
   </div>
 
   <div class="receipt-card">

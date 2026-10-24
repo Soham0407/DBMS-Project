@@ -69,6 +69,14 @@
                   </button>
                 </form>
               </div>
+              {% elif q.status == 'Seated' %}
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <form action="{{ url_for('release_queue_entry', queue_id=q.id) }}" method="POST">
+                  <button type="submit" class="btn btn-outline btn-sm" style="color: #64748b; border-color: #cbd5e1;">
+                    🏁 Vacate Table
+                  </button>
+                </form>
+              </div>
               {% else %}
                 <span style="color: var(--text-muted); font-size: 0.85rem;">Archived</span>
               {% endif %}

@@ -116,17 +116,16 @@
     <div class="grid-3">
       {% for item in featured %}
       <div class="menu-card">
-        <div class="menu-card-img-wrap">
-          <img src="{{ item.image_url }}" alt="{{ item.name }}" loading="lazy">
+        <div class="menu-card-top">
           <div class="menu-card-badges">
             {% if item.diet_type == 'veg' %}
               <span class="badge badge-veg">● Pure Veg</span>
             {% else %}
               <span class="badge badge-nonveg">▲ Non-Veg</span>
             {% endif %}
-            <span class="badge" style="background:#fff; color:var(--secondary);">{{ item.category_name }}</span>
+            <span class="badge badge-category">{{ item.category_name }}</span>
           </div>
-          <div class="menu-card-price">₹{{ "%.2f"|format(item.price) }}</div>
+          <div class="menu-card-price-tag">₹{{ "%.2f"|format(item.price) }}</div>
         </div>
 
         <div class="menu-card-body">

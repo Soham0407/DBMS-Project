@@ -37,7 +37,6 @@
           <tr>
             <td>
               <div class="cart-item-info">
-                <img src="{{ item.image_url }}" alt="{{ item.name }}" class="cart-item-img">
                 <div>
                   <div class="cart-item-name">{{ item.name }}</div>
                   <div style="margin-top: 4px;">
@@ -114,9 +113,15 @@
           <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
             <span style="font-size: 0.8rem; color: var(--text-muted);">Available:</span>
             {% for off in available_offers %}
-              <button type="button" class="badge" style="background: #ffedd5; color: var(--primary); border: 1px dashed var(--primary); cursor: pointer;" onclick="document.getElementById('coupon_input').value='{{ off.code }}'">
-                {{ off.code }} ({{ off.discount_percent|int }}% off)
-              </button>
+              {% if off.code == 'WELCOME20' and used_welcome20 %}
+                <span class="badge" style="background: #f1f5f9; color: #94a3b8; border: 1px dashed #cbd5e1; cursor: not-allowed;" title="First-time offer already redeemed">
+                  {{ off.code }} (Already Redeemed)
+                </span>
+              {% else %}
+                <button type="button" class="badge" style="background: #ffedd5; color: var(--primary); border: 1px dashed var(--primary); cursor: pointer;" onclick="document.getElementById('coupon_input').value='{{ off.code }}'">
+                  {{ off.code }} ({{ off.discount_percent|int }}% off)
+                </button>
+              {% endif %}
             {% endfor %}
           </div>
           {% endif %}
@@ -193,11 +198,36 @@
           </div>
         </div>
 
-        <!-- CHECKOUT BUTTON -->
+        <!-- CHECKOUT BUTTON (ENFORCE SEATED CUSTOMER CHECK) -->
         {% if current_user.id %}
-          <button type="submit" class="btn btn-primary btn-block" style="margin-top: 20px; font-size: 1.05rem; padding: 12px;">
-            Place Order (₹{{ "%.2f"|format(final_total) }}) &rarr;
-          </button>
+          {% if is_seated %}
+            <div style="background: #ecfdf5; border: 1px solid #a7f3d0; padding: 10px 14px; border-radius: var(--radius-sm); margin-top: 16px; font-size: 0.88rem; color: #065f46;">
+              ✅ <strong>Seated:</strong> You are seated at the restaurant (Token #{{ my_queue.token_number }}). You can place your order now!
+            </div>
+            <button type="submit" class="btn btn-primary btn-block" style="margin-top: 12px; font-size: 1.05rem; padding: 12px;">
+              Place Order (₹{{ "%.2f"|format(final_total) }}) &rarr;
+            </button>
+          {% elif my_queue and my_queue.status == 'Waiting' %}
+            <div style="background: #fffbeb; border: 1px solid #fde68a; padding: 12px; border-radius: var(--radius-sm); margin-top: 16px; font-size: 0.88rem; color: #92400e;">
+              ⏳ <strong>Waiting for Table:</strong> Your queue token is <strong>#{{ my_queue.token_number }}</strong>. Staff must mark you as seated before you can place an order.
+            </div>
+            <button type="button" class="btn btn-secondary btn-block" disabled style="margin-top: 12px; opacity: 0.6; cursor: not-allowed; padding: 12px;">
+              Must Be Seated to Order (Token #{{ my_queue.token_number }})
+            </button>
+            <a href="{{ url_for('customer_queue') }}" class="btn btn-outline btn-block btn-sm" style="margin-top: 8px;">
+              View Live Queue Status &rarr;
+            </a>
+          {% else %}
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 12px; border-radius: var(--radius-sm); margin-top: 16px; font-size: 0.88rem; color: var(--secondary);">
+              🪑 <strong>Seating Required:</strong> Customers can only order once seated at a table. Please join the table queue first.
+            </div>
+            <button type="button" class="btn btn-secondary btn-block" disabled style="margin-top: 12px; opacity: 0.6; cursor: not-allowed; padding: 12px;">
+              Seating Required to Order
+            </button>
+            <a href="{{ url_for('customer_queue') }}" class="btn btn-primary btn-block btn-sm" style="margin-top: 8px;">
+              🪑 Join Table Queue First &rarr;
+            </a>
+          {% endif %}
         {% else %}
           <div style="margin-top: 20px;">
             <a href="{{ url_for('login') }}" class="btn btn-primary btn-block">

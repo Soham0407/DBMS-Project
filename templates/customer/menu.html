@@ -63,25 +63,24 @@
   {% if menu_items %}
   <div class="grid-3">
     {% for item in menu_items %}
-    <div class="menu-card" style="{% if not item.is_available %}opacity: 0.6; filter: grayscale(40%);{% endif %}">
+    <div class="menu-card" style="{% if not item.is_available %}opacity: 0.65;{% endif %}">
       
-      <div class="menu-card-img-wrap">
-        <img src="{{ item.image_url }}" alt="{{ item.name }}" loading="lazy">
+      <div class="menu-card-top">
         <div class="menu-card-badges">
           {% if item.diet_type == 'veg' %}
             <span class="badge badge-veg">● Pure Veg</span>
           {% else %}
             <span class="badge badge-nonveg">▲ Non-Veg</span>
           {% endif %}
-          <span class="badge" style="background:#fff; color:var(--secondary);">{{ item.category_icon }} {{ item.category_name }}</span>
+          <span class="badge badge-category">{{ item.category_icon }} {{ item.category_name }}</span>
         </div>
 
         {% if not item.is_available %}
-          <div style="position: absolute; top: 10px; right: 10px; background: #ef4444; color: #fff; font-weight: 700; font-size: 0.75rem; padding: 4px 8px; border-radius: 4px;">
+          <div class="badge badge-status status-cancelled">
             OUT OF STOCK
           </div>
         {% else %}
-          <div class="menu-card-price">₹{{ "%.2f"|format(item.price) }}</div>
+          <div class="menu-card-price-tag">₹{{ "%.2f"|format(item.price) }}</div>
         {% endif %}
       </div>
 

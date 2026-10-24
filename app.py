@@ -44,6 +44,28 @@ def admin_required(f):
     return decorated_function
 
 
+def customer_only(f):
+    """Decorator to prevent admin/staff from seeing customer-facing pages."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get('user_role') in ['admin', 'staff']:
+            return redirect(url_for('admin_dashboard'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def get_customer_queue_status(customer_id):
+    """Fetch customer's active queue spot (Waiting or Seated)."""
+    conn = get_db()
+    entry = conn.execute("""
+        SELECT * FROM queue 
+        WHERE customer_id = ? AND status IN ('Waiting', 'Seated')
+        ORDER BY id DESC LIMIT 1
+    """, (customer_id,)).fetchone()
+    conn.close()
+    return entry
+
+
 @app.context_processor
 def inject_global_data():
     """Injects user session data and active cart item count into all Jinja templates."""
@@ -165,6 +187,7 @@ def logout():
 # CUSTOMER PORTAL ROUTES
 # -------------------------------------------------------------------------
 @app.route('/')
+@customer_only
 def index():
     """Landing homepage with restaurant highlights and active offers."""
     conn = get_db()
@@ -197,6 +220,7 @@ def index():
 
 
 @app.route('/menu')
+@customer_only
 def menu():
     """Interactive food menu with category filter, dietary filter, and spice selection."""
     category_id = request.args.get('category', type=int)
@@ -242,6 +266,7 @@ def menu():
 # CART & CHECKOUT MANAGEMENT (Session-backed with spice customization)
 # -------------------------------------------------------------------------
 @app.route('/cart/add', methods=['POST'])
+@customer_only
 def add_to_cart():
     """Add a dish to cart with selected spice level and quantity."""
     item_id = request.form.get('item_id', type=int)
@@ -275,8 +300,7 @@ def add_to_cart():
             'price': float(item['price']),
             'spice_level': spice_level,
             'quantity': quantity,
-            'diet_type': item['diet_type'],
-            'image_url': item['image_url']
+            'diet_type': item['diet_type']
         }
 
     session['cart'] = cart
@@ -286,6 +310,7 @@ def add_to_cart():
 
 
 @app.route('/cart/update', methods=['POST'])
+@customer_only
 def update_cart():
     """Update item quantity or remove item from cart."""
     cart_key = request.form.get('cart_key')
@@ -309,6 +334,7 @@ def update_cart():
 
 
 @app.route('/cart/clear', methods=['POST'])
+@customer_only
 def clear_cart():
     """Empty cart contents."""
     session.pop('cart', None)
@@ -318,6 +344,7 @@ def clear_cart():
 
 
 @app.route('/cart')
+@customer_only
 def view_cart():
     """View cart contents, select DineIn/TakeAway, apply promo codes."""
     cart = session.get('cart', {})
@@ -328,6 +355,23 @@ def view_cart():
     # Calculate discount if coupon applied
     discount_amount = 0.0
     applied_offer = session.get('applied_offer')
+
+    # Single-use check for WELCOME20
+    user_id = session.get('user_id')
+    used_welcome20 = False
+    if user_id:
+        conn = get_db()
+        used_count = conn.execute("""
+            SELECT COUNT(*) FROM orders 
+            WHERE customer_id = ? AND UPPER(offer_code) = 'WELCOME20' AND status != 'Cancelled'
+        """, (user_id,)).fetchone()[0]
+        conn.close()
+        used_welcome20 = (used_count > 0)
+
+        if applied_offer and applied_offer.get('code') == 'WELCOME20' and used_welcome20:
+            session.pop('applied_offer', None)
+            applied_offer = None
+            flash("Coupon 'WELCOME20' is only applicable once for your first order. You have already redeemed it.", 'warning')
 
     if applied_offer and subtotal > 0:
         if subtotal >= applied_offer['min_order_amount']:
@@ -340,6 +384,14 @@ def view_cart():
 
     final_total = max(0.0, round(subtotal - discount_amount, 2))
 
+    # Check seating requirement
+    is_seated = False
+    my_queue = None
+    if user_id:
+        my_queue = get_customer_queue_status(user_id)
+        if my_queue and my_queue['status'] == 'Seated':
+            is_seated = True
+
     conn = get_db()
     offers = conn.execute("SELECT * FROM offers WHERE is_active = 1").fetchall()
     conn.close()
@@ -350,13 +402,30 @@ def view_cart():
                            discount_amount=discount_amount,
                            final_total=final_total,
                            applied_offer=applied_offer,
-                           available_offers=offers)
+                           available_offers=offers,
+                           is_seated=is_seated,
+                           my_queue=my_queue,
+                           used_welcome20=used_welcome20)
 
 
 @app.route('/cart/apply-offer', methods=['POST'])
+@customer_only
 def apply_offer():
     """Validate and apply promo code discount."""
     code = request.form.get('offer_code', '').strip().upper()
+    user_id = session.get('user_id')
+
+    # Enforce WELCOME20 single-use rule
+    if code == 'WELCOME20' and user_id:
+        conn = get_db()
+        used_count = conn.execute("""
+            SELECT COUNT(*) FROM orders 
+            WHERE customer_id = ? AND UPPER(offer_code) = 'WELCOME20' AND status != 'Cancelled'
+        """, (user_id,)).fetchone()[0]
+        conn.close()
+        if used_count > 0:
+            flash("Promo code 'WELCOME20' is only applicable once for your first order. You have already redeemed this offer.", 'danger')
+            return redirect(url_for('view_cart'))
     
     conn = get_db()
     offer = conn.execute("SELECT * FROM offers WHERE code = ? AND is_active = 1", (code,)).fetchone()
@@ -385,6 +454,7 @@ def apply_offer():
 
 
 @app.route('/cart/remove-offer', methods=['POST'])
+@customer_only
 def remove_offer():
     """Remove currently applied promo code."""
     session.pop('applied_offer', None)
@@ -394,12 +464,25 @@ def remove_offer():
 
 @app.route('/checkout', methods=['POST'])
 @login_required
+@customer_only
 def checkout():
     """
     Process order placement:
-    Inserts order into `orders` table and item details into `order_items` table
-    using a database transaction.
+    Only allowed when the customer is Seated.
+    Validates single-use WELCOME20 coupon.
+    Inserts order into `orders` table and item details into `order_items` table.
     """
+    user_id = session['user_id']
+
+    # 1. Enforce Seating requirement
+    my_queue = get_customer_queue_status(user_id)
+    if not my_queue or my_queue['status'] != 'Seated':
+        if my_queue and my_queue['status'] == 'Waiting':
+            flash(f"You cannot place an order yet. You are currently in the table queue (Token #{my_queue['token_number']}). Please wait until restaurant staff seats you at a table.", 'warning')
+        else:
+            flash("You cannot place an order yet. You must be seated at a table before ordering. Please join the table queue first.", 'warning')
+        return redirect(url_for('customer_queue'))
+
     cart = session.get('cart', {})
     if not cart:
         flash('Your cart is empty. Add some delicious dishes first!', 'warning')
@@ -415,6 +498,19 @@ def checkout():
     discount_amount = 0.0
     offer_code = None
 
+    # Enforce WELCOME20 single-use check at checkout
+    if applied_offer and applied_offer.get('code') == 'WELCOME20':
+        conn_check = get_db()
+        used_count = conn_check.execute("""
+            SELECT COUNT(*) FROM orders 
+            WHERE customer_id = ? AND UPPER(offer_code) = 'WELCOME20' AND status != 'Cancelled'
+        """, (user_id,)).fetchone()[0]
+        conn_check.close()
+        if used_count > 0:
+            session.pop('applied_offer', None)
+            applied_offer = None
+            flash("Coupon 'WELCOME20' is only applicable once for your first order. Order placed at regular price.", 'warning')
+
     if applied_offer and subtotal >= applied_offer['min_order_amount']:
         discount_amount = round((subtotal * applied_offer['discount_percent']) / 100.0, 2)
         offer_code = applied_offer['code']
@@ -429,7 +525,7 @@ def checkout():
         cursor.execute("""
             INSERT INTO orders (customer_id, order_type, table_number, total_amount, discount_amount, final_amount, status, offer_code, special_instructions)
             VALUES (?, ?, ?, ?, ?, ?, 'Pending', ?, ?)
-        """, (session['user_id'], order_type, table_number, subtotal, discount_amount, final_amount, offer_code, special_instructions))
+        """, (user_id, order_type, table_number, subtotal, discount_amount, final_amount, offer_code, special_instructions))
         
         order_id = cursor.lastrowid
 
@@ -478,7 +574,7 @@ def check_bill(order_id):
     if not order:
         conn.close()
         flash('Order not found.', 'danger')
-        return redirect(url_for('my_orders'))
+        return redirect(url_for('admin_orders') if session.get('user_role') in ['admin', 'staff'] else url_for('my_orders'))
 
     # Security check: Only customer who placed it or staff can view bill
     if session.get('user_role') not in ['admin', 'staff'] and order['customer_id'] != session['user_id']:
@@ -487,7 +583,7 @@ def check_bill(order_id):
         return redirect(url_for('my_orders'))
 
     items = conn.execute("""
-        SELECT oi.*, m.name as dish_name, m.diet_type, m.image_url
+        SELECT oi.*, m.name as dish_name, m.diet_type
         FROM order_items oi
         JOIN menu_items m ON oi.menu_item_id = m.id
         WHERE oi.order_id = ?
@@ -499,6 +595,7 @@ def check_bill(order_id):
 
 @app.route('/orders')
 @login_required
+@customer_only
 def my_orders():
     """Customer's active and past order history."""
     conn = get_db()
@@ -520,24 +617,28 @@ def my_orders():
 # -------------------------------------------------------------------------
 @app.route('/queue', methods=['GET', 'POST'])
 @login_required
+@customer_only
 def customer_queue():
     """
     Customer table waiting queue.
-    Allows customers to join the waitlist, view live token number, and see parties ahead.
+    Allows customers to join the waitlist, view live token number, and see when they are Seated.
     """
     conn = get_db()
 
     if request.method == 'POST':
         party_size = request.form.get('party_size', 2, type=int)
         
-        # Check if already waiting
+        # Check if already waiting or seated
         existing = conn.execute("""
             SELECT * FROM queue 
-            WHERE customer_id = ? AND status = 'Waiting'
+            WHERE customer_id = ? AND status IN ('Waiting', 'Seated')
         """, (session['user_id'],)).fetchone()
 
         if existing:
-            flash(f"You already have an active queue spot (Token #{existing['token_number']}).", 'warning')
+            if existing['status'] == 'Seated':
+                flash(f"You are currently seated at a table (Token #{existing['token_number']})!", 'info')
+            else:
+                flash(f"You already have an active queue spot (Token #{existing['token_number']}).", 'warning')
         else:
             # Calculate next token number for the day
             last_token = conn.execute("SELECT MAX(token_number) FROM queue").fetchone()[0]
@@ -550,15 +651,15 @@ def customer_queue():
             conn.commit()
             flash(f"You have joined the queue! Your Token number is #{next_token}.", 'success')
 
-    # Fetch customer's current queue status if any
+    # Fetch customer's current queue status (Waiting or Seated)
     my_queue = conn.execute("""
         SELECT * FROM queue 
-        WHERE customer_id = ? AND status = 'Waiting'
+        WHERE customer_id = ? AND status IN ('Waiting', 'Seated')
         ORDER BY id DESC LIMIT 1
     """, (session['user_id'],)).fetchone()
 
     parties_ahead = 0
-    if my_queue:
+    if my_queue and my_queue['status'] == 'Waiting':
         parties_ahead = conn.execute("""
             SELECT COUNT(*) FROM queue 
             WHERE status = 'Waiting' AND id < ?
@@ -576,6 +677,7 @@ def customer_queue():
 
 @app.route('/queue/cancel', methods=['POST'])
 @login_required
+@customer_only
 def cancel_queue():
     """Customer cancels their queue waiting spot."""
     conn = get_db()
@@ -591,22 +693,51 @@ def cancel_queue():
     return redirect(url_for('customer_queue'))
 
 
+@app.route('/queue/leave', methods=['POST'])
+@login_required
+@customer_only
+def leave_table():
+    """Customer leaves their table when finished dining."""
+    conn = get_db()
+    conn.execute("""
+        UPDATE queue 
+        SET status = 'Cancelled' 
+        WHERE customer_id = ? AND status IN ('Waiting', 'Seated')
+    """, (session['user_id'],))
+    conn.commit()
+    conn.close()
+
+    flash('You have vacated your table. Thank you for dining with us!', 'info')
+    return redirect(url_for('customer_queue'))
+
+
 # -------------------------------------------------------------------------
 # OFFERS SECTION (Customer View)
 # -------------------------------------------------------------------------
 @app.route('/offers')
+@customer_only
 def customer_offers():
     """Browse all promotional offers, discounts, and vouchers."""
     conn = get_db()
     offers = conn.execute("SELECT * FROM offers WHERE is_active = 1 ORDER BY discount_percent DESC").fetchall()
+
+    used_welcome20 = False
+    if 'user_id' in session:
+        count = conn.execute("""
+            SELECT COUNT(*) FROM orders 
+            WHERE customer_id = ? AND UPPER(offer_code) = 'WELCOME20' AND status != 'Cancelled'
+        """, (session['user_id'],)).fetchone()[0]
+        used_welcome20 = (count > 0)
+
     conn.close()
-    return render_template('customer/offers.html', offers=offers)
+    return render_template('customer/offers.html', offers=offers, used_welcome20=used_welcome20)
 
 
 # -------------------------------------------------------------------------
 # REVIEWS SECTION (Ratings & Feedback)
 # -------------------------------------------------------------------------
 @app.route('/reviews', methods=['GET', 'POST'])
+@customer_only
 def customer_reviews():
     """View and post reviews for dishes or restaurant dining experience."""
     conn = get_db()
@@ -756,6 +887,8 @@ def update_order_status(order_id):
         conn.commit()
         conn.close()
         flash(f"Order #{order_id} status updated to '{new_status}'.", 'success')
+        if new_status == 'Completed':
+            return redirect(url_for('admin_orders', status='Completed'))
     else:
         flash("Invalid status update.", 'danger')
 
@@ -793,17 +926,12 @@ def add_menu_item():
     diet_type = request.form.get('diet_type', 'veg')
     is_spicy_customizable = 1 if request.form.get('is_spicy_customizable') else 0
     default_spice_level = request.form.get('default_spice_level', 'Medium')
-    image_url = request.form.get('image_url', '').strip()
-
-    if not image_url:
-        # Default food placeholder
-        image_url = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=60"
 
     conn = get_db()
     conn.execute("""
         INSERT INTO menu_items (category_id, name, description, price, diet_type, is_spicy_customizable, default_spice_level, image_url)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (category_id, name, description, price, diet_type, is_spicy_customizable, default_spice_level, image_url))
+        VALUES (?, ?, ?, ?, ?, ?, ?, '')
+    """, (category_id, name, description, price, diet_type, is_spicy_customizable, default_spice_level))
     conn.commit()
     conn.close()
 
@@ -922,6 +1050,18 @@ def cancel_queue_entry(queue_id):
     conn.commit()
     conn.close()
     flash(f"Queue entry cancelled.", 'info')
+    return redirect(url_for('admin_queue'))
+
+
+@app.route('/admin/queue/<int:queue_id>/release', methods=['POST'])
+@admin_required
+def release_queue_entry(queue_id):
+    """Release/vacate a seated customer table."""
+    conn = get_db()
+    conn.execute("UPDATE queue SET status = 'Cancelled' WHERE id = ?", (queue_id,))
+    conn.commit()
+    conn.close()
+    flash("Table has been cleared and vacated.", 'info')
     return redirect(url_for('admin_queue'))
 
 
