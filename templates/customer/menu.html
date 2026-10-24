@@ -81,7 +81,7 @@
             OUT OF STOCK
           </div>
         {% else %}
-          <div class="menu-card-price">${{ "%.2f"|format(item.price) }}</div>
+          <div class="menu-card-price">₹{{ "%.2f"|format(item.price) }}</div>
         {% endif %}
       </div>
 

@@ -39,7 +39,7 @@
             </span>
             <span>
               <strong>Amount Paid:</strong> 
-              <span style="color: var(--primary); font-weight: 700;">${{ "%.2f"|format(ord.final_amount) }}</span>
+              <span style="color: var(--primary); font-weight: 700;">₹{{ "%.2f"|format(ord.final_amount) }}</span>
             </span>
             {% if ord.offer_code %}
               <span style="color: #059669; font-weight: 600;">

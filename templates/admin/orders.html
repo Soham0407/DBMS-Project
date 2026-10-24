@@ -78,10 +78,10 @@
         <!-- TOTAL & QUICK BILL LINK -->
         <div style="text-align: right;">
           <div style="font-size: 1.4rem; font-weight: 800; color: var(--secondary);">
-            ${{ "%.2f"|format(ord.final_amount) }}
+            ₹{{ "%.2f"|format(ord.final_amount) }}
           </div>
           {% if ord.discount_amount > 0 %}
-            <div style="font-size: 0.8rem; color: #059669;">Promo: {{ ord.offer_code }} (-${{ "%.2f"|format(ord.discount_amount) }})</div>
+            <div style="font-size: 0.8rem; color: #059669;">Promo: {{ ord.offer_code }} (-₹{{ "%.2f"|format(ord.discount_amount) }})</div>
           {% endif %}
           <a href="{{ url_for('check_bill', order_id=ord.id) }}" target="_blank" class="btn btn-outline btn-sm" style="margin-top: 6px;">
             🧾 View / Print Bill

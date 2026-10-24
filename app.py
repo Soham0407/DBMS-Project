@@ -371,7 +371,7 @@ def apply_offer():
     subtotal = sum(item['price'] * item['quantity'] for item in cart.values())
 
     if subtotal < offer['min_order_amount']:
-        flash(f"Offer '{code}' requires a minimum order amount of ${offer['min_order_amount']:.2f}.", 'warning')
+        flash(f"Offer '{code}' requires a minimum order amount of ₹{offer['min_order_amount']:.2f}.", 'warning')
         return redirect(url_for('view_cart'))
 
     session['applied_offer'] = {

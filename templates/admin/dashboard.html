@@ -26,7 +26,7 @@
         Total Revenue
       </div>
       <div style="font-size: 2rem; font-weight: 800; color: var(--secondary); margin: 6px 0;">
-        ${{ "%.2f"|format(total_revenue) }}
+        ₹{{ "%.2f"|format(total_revenue) }}
       </div>
       <div style="font-size: 0.85rem; color: #059669;">Across all completed & active orders</div>
     </div>
@@ -97,7 +97,7 @@
                   <span style="font-weight: 600; color: var(--secondary);">🛍️ TakeAway</span>
                 {% endif %}
               </td>
-              <td style="font-weight: 700;">${{ "%.2f"|format(ord.final_amount) }}</td>
+              <td style="font-weight: 700;">₹{{ "%.2f"|format(ord.final_amount) }}</td>
               <td>
                 <span class="badge badge-status status-{{ ord.status|lower }}">{{ ord.status }}</span>
               </td>
@@ -130,7 +130,7 @@
             <div style="font-size: 0.8rem; color: var(--text-muted);">{{ dish.total_sold }} portions served</div>
           </div>
           <div style="font-weight: 700; color: var(--primary); font-size: 0.95rem;">
-            ${{ "%.2f"|format(dish.revenue) }}
+            ₹{{ "%.2f"|format(dish.revenue) }}
           </div>
         </div>
         {% endfor %}

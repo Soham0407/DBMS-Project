@@ -47,7 +47,7 @@
 
 ### ⚙️ 2. Restaurant / Server Side (Admin & Staff)
 - **Operations Dashboard**:
-  - KPI Metrics: Total Revenue ($), Active Kitchen Orders, Waiting Queue, Staff Workforce.
+  - KPI Metrics: Total Revenue (₹), Active Kitchen Orders, Waiting Queue, Staff Workforce.
   - Popular Dishes Aggregation (`GROUP BY menu_item_id ORDER BY total_sold DESC`).
 - **Live Order Management Board**:
   - Filter orders by status: **All**, **Pending**, **Preparing**, **Ready**, **Completed**, **Cancelled**.

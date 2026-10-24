@@ -45,7 +45,7 @@
       </div>
 
       <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-muted);">
-        <span>Min. Order: <strong>${{ "%.2f"|format(off.min_order_amount) }}</strong></span>
+        <span>Min. Order: <strong>₹{{ "%.2f"|format(off.min_order_amount) }}</strong></span>
         <a href="{{ url_for('menu') }}" style="color: var(--primary); font-weight: 600;">Use Now &rarr;</a>
       </div>
     </div>

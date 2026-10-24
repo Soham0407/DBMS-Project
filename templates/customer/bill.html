@@ -103,8 +103,8 @@
             </div>
           </td>
           <td style="padding: 10px 0; text-align: center;">{{ item.quantity }}</td>
-          <td style="padding: 10px 0; text-align: right;">${{ "%.2f"|format(item.price_per_unit) }}</td>
-          <td style="padding: 10px 0; text-align: right; font-weight: 600;">${{ "%.2f"|format(item.item_total) }}</td>
+          <td style="padding: 10px 0; text-align: right;">₹{{ "%.2f"|format(item.price_per_unit) }}</td>
+          <td style="padding: 10px 0; text-align: right; font-weight: 600;">₹{{ "%.2f"|format(item.item_total) }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -121,19 +121,19 @@
     <div style="margin-left: auto; max-width: 300px;">
       <div class="bill-row">
         <span>Items Subtotal:</span>
-        <span>${{ "%.2f"|format(order.total_amount) }}</span>
+        <span>₹{{ "%.2f"|format(order.total_amount) }}</span>
       </div>
 
       {% if order.discount_amount > 0 %}
       <div class="bill-row" style="color: #059669; font-weight: 600;">
         <span>Promo Discount ({{ order.offer_code }}):</span>
-        <span>-${{ "%.2f"|format(order.discount_amount) }}</span>
+        <span>-₹{{ "%.2f"|format(order.discount_amount) }}</span>
       </div>
       {% endif %}
 
       <div class="bill-total-row">
         <span>Total Paid:</span>
-        <span style="color: var(--primary);">${{ "%.2f"|format(order.final_amount) }}</span>
+        <span style="color: var(--primary);">₹{{ "%.2f"|format(order.final_amount) }}</span>
       </div>
     </div>
 
