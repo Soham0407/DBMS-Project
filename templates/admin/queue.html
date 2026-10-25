@@ -1,97 +1,135 @@
 {% extends 'base.html' %}
-{% block title %}Queue Waitlist Control - Saffron Feast{% endblock %}
+{% block title %}Table Waitlist Queue - Saffron Feast{% endblock %}
 
 {% block content %}
 <div class="container">
 
-  <div class="section-header">
+  <div class="section-header" style="text-align: center; max-width: 600px; margin: 0 auto 30px;">
     <div>
       <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--secondary); margin-bottom: 6px;">
-        Table Waitlist & Queue Control
+        Table Waitlist & Queue
       </h1>
-      <p>Monitor dining table queue, seat waiting customer parties, and maintain floor occupancy</p>
+      <p>Avoid waiting in long physical lines. Get a live digital queue token and track your table assignment in real-time.</p>
     </div>
   </div>
 
-  <div class="admin-card">
-    <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--secondary); margin-bottom: 16px;">
-      Live Customer Queue
-    </h3>
+  {% if my_queue %}
+    {% if my_queue.status == 'Seated' %}
+    <!-- CURRENT ACTIVE SEATED TABLE -->
+    <div class="queue-card" style="border: 2px solid #10b981;">
+      <span class="badge" style="background: #ecfdf5; color: #047857; margin-bottom: 14px; font-size: 0.9rem; padding: 6px 14px;">
+        🎉 YOU ARE SEATED
+      </span>
 
-    {% if queue_list %}
-    <div style="overflow-x: auto;">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>Token #</th>
-            <th>Customer Name</th>
-            <th>Party Size</th>
-            <th>Registered At</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for q in queue_list %}
-          <tr>
-            <td>
-              <span style="font-size: 1.15rem; font-weight: 800; color: var(--primary);">
-                #{{ q.token_number }}
-              </span>
-            </td>
-            <td><strong>{{ q.customer_name }}</strong></td>
-            <td>
-              <span class="badge" style="background:#f1f5f9; color:var(--secondary); font-size: 0.85rem;">
-                👥 {{ q.party_size }} Guests
-              </span>
-            </td>
-            <td style="font-size: 0.85rem; color: var(--text-muted);">{{ q.created_at }}</td>
-            <td>
-              {% if q.status == 'Waiting' %}
-                <span class="badge badge-status status-pending">⏳ Waiting</span>
-              {% elif q.status == 'Seated' %}
-                <span class="badge badge-status status-completed">✅ Seated</span>
-              {% else %}
-                <span class="badge badge-status status-cancelled">❌ Cancelled</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if q.status == 'Waiting' %}
-              <div style="display: flex; gap: 8px;">
-                <form action="{{ url_for('seat_customer', queue_id=q.id) }}" method="POST">
-                  <button type="submit" class="btn btn-success btn-sm">
-                    🪑 Seat Table
-                  </button>
-                </form>
-                <form action="{{ url_for('cancel_queue_entry', queue_id=q.id) }}" method="POST">
-                  <button type="submit" class="btn btn-danger btn-sm">
-                    Cancel
-                  </button>
-                </form>
-              </div>
-              {% elif q.status == 'Seated' %}
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <form action="{{ url_for('release_queue_entry', queue_id=q.id) }}" method="POST">
-                  <button type="submit" class="btn btn-outline btn-sm" style="color: #64748b; border-color: #cbd5e1;">
-                    🏁 Vacate Table
-                  </button>
-                </form>
-              </div>
-              {% else %}
-                <span style="color: var(--text-muted); font-size: 0.85rem;">Archived</span>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="token-circle" style="background: #10b981; color: #fff;">
+        #{{ my_queue.token_number }}
+      </div>
+
+      <h2 style="color: var(--secondary); font-size: 1.5rem; margin-bottom: 6px;">
+        Party of {{ my_queue.party_size }} Guests (Seated)
+      </h2>
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 20px;">
+        Registered under <strong>{{ my_queue.customer_name }}</strong>
+      </p>
+
+      <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: var(--radius-sm); padding: 16px; margin-bottom: 24px; text-align: center;">
+        <p style="color: #065f46; font-weight: 600; font-size: 1rem; margin-bottom: 12px;">
+          Your dining table is active! You can now place food orders from the menu.
+        </p>
+        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+          <a href="{{ url_for('menu') }}" class="btn btn-primary">🍲 Browse Menu & Order</a>
+          <a href="{{ url_for('view_cart') }}" class="btn btn-secondary">🛒 View Cart</a>
+        </div>
+      </div>
+
+      <form action="{{ url_for('leave_table') }}" method="POST">
+        <button type="submit" class="btn btn-outline btn-sm" onclick="return confirm('Do you want to vacate your table and finish dining?')">
+          Finish Dining & Vacate Table
+        </button>
+      </form>
     </div>
     {% else %}
-      <p style="color: var(--text-muted); text-align: center; padding: 30px;">
-        No customers currently in queue.
+    <!-- CURRENT ACTIVE WAITING TICKET -->
+    <div class="queue-card">
+      <span class="badge" style="background: #ffedd5; color: var(--primary); margin-bottom: 14px; font-size: 0.85rem;">
+        ⏳ YOU ARE IN QUEUE
+      </span>
+
+      <div class="token-circle">
+        #{{ my_queue.token_number }}
+      </div>
+
+      <h2 style="color: var(--secondary); font-size: 1.5rem; margin-bottom: 6px;">
+        Party of {{ my_queue.party_size }} Persons
+      </h2>
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 20px;">
+        Registered under <strong>{{ my_queue.customer_name }}</strong> at {{ my_queue.created_at }}
       </p>
+
+      <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div>
+          <div style="font-size: 1.8rem; font-weight: 800; color: var(--primary);">{{ parties_ahead }}</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Parties Ahead</div>
+        </div>
+        <div>
+          <div style="font-size: 1.8rem; font-weight: 800; color: var(--secondary);">~{{ (parties_ahead * 8) + 5 }}m</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Est. Wait Time</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 24px; font-size: 0.88rem; color: #0369a1; background: #e0f2fe; padding: 10px; border-radius: var(--radius-sm);">
+        ℹ️ Please stay near the dining lobby. The host will call token <strong>#{{ my_queue.token_number }}</strong> as soon as your table is prepared! You can order once seated.
+      </div>
+
+      <form action="{{ url_for('cancel_queue') }}" method="POST">
+        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Do you want to release your queue token?')">
+          Cancel My Queue Spot
+        </button>
+      </form>
+    </div>
     {% endif %}
-  </div>
+
+  {% else %}
+
+    <!-- JOIN WAITLIST FORM -->
+    <div class="receipt-card" style="max-width: 520px;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="font-size: 2.8rem; margin-bottom: 8px;">🪑</div>
+        <h2 style="color: var(--secondary); margin-bottom: 6px;">Join the Table Queue</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">
+          Currently <strong>{{ total_waiting }}</strong> party/parties waiting for tables.
+        </p>
+      </div>
+
+      {% if current_user.id %}
+      <form action="{{ url_for('customer_queue') }}" method="POST">
+        <div class="form-group">
+          <label class="form-label" for="party_size">How many guests in your party?</label>
+          <select name="party_size" id="party_size" class="form-control" style="font-weight: 600;">
+            <option value="1">1 Person (Solo diner)</option>
+            <option value="2" selected>2 Persons (Couple table)</option>
+            <option value="3">3 Persons</option>
+            <option value="4">4 Persons (Standard family table)</option>
+            <option value="5">5 Persons</option>
+            <option value="6">6 Persons (Large booth)</option>
+            <option value="8">8+ Persons (Group party)</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" style="padding: 12px; font-size: 1.05rem;">
+          🎟️ Get My Queue Token
+        </button>
+      </form>
+      {% else %}
+        <div style="text-align: center; padding: 10px 0;">
+          <p style="color: var(--text-muted); margin-bottom: 16px;">Please log in or sign up to grab your queue token.</p>
+          <a href="{{ url_for('login') }}" class="btn btn-primary btn-block">Log in to Join Queue</a>
+        </div>
+      {% endif %}
+
+    </div>
+
+  {% endif %}
 
 </div>
 {% endblock %}
