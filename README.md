@@ -82,43 +82,59 @@ The database is built on **SQLite3** with strict relational integrity (`PRAGMA f
 
 ### Relational Schema Diagram:
 
-```
-+------------------+         +-------------------+
-|      users       |1       *|      orders       |
-+------------------+---------+-------------------+
-| id (PK)          |         | id (PK)           |
-| name             |         | customer_id (FK)  |
-| email (UNIQUE)   |         | order_type        |
-| password         |         | table_number      |
-| phone            |         | total_amount      |
-| role             |         | discount_amount   |
-| created_at       |         | final_amount      |
-+------------------+         | status            |
-         |1                  | offer_code        |
-         |                   | created_at        |
-         |*                  +-------------------+
-+------------------+                   |1
-|      queue       |                   |
-+------------------+                   |*
-| id (PK)          |         +-------------------+         +-------------------+
-| customer_id (FK) |         |    order_items    |*       1|    menu_items     |
-| customer_name    |         +-------------------+---------+-------------------+
-| party_size       |         | id (PK)           |         | id (PK)           |
-| token_number     |         | order_id (FK)     |         | category_id (FK)  |
-| status           |         | menu_item_id (FK) |         | name              |
-| created_at       |         | quantity          |         | price             |
-+------------------+         | price_per_unit    |         | diet_type         |
-                             | spice_level       |         | is_spicy_custom   |
-+------------------+         | item_total        |         | is_available      |
-|     reviews      |         +-------------------+         +-------------------+
-+------------------+                                                 |*
-| id (PK)          |                                                 |1
-| customer_id (FK) |                                       +-------------------+
-| menu_item_id (FK)|                                       |    categories     |
-| rating (1-5)     |                                       +-------------------+
-| comment          |                                       | id (PK)           |
-+------------------+                                       | name, icon        |
-                                                           +-------------------+
++--------------------+    +--------------------+    +--------------------+
+|       users        |1  *|       orders       |*  1|       offers       |
++--------------------+----+--------------------+----+--------------------+
+| id (PK)            |    | id (PK)            |    | id (PK)            |
+| name               |    | customer_id (FK)   |    | code (UNIQUE/PK)   |
+| email (UNIQUE)     |    | order_type         |    | title              |
+| password           |    | table_number       |    | description        |
+| phone              |    | total_amount       |    | discount_percent   |
+| role               |    | discount_amount    |    | min_order_amount   |
+| created_at         |    | final_amount       |    | is_active          |
++--------------------+    | status             |    | valid_until        |
+        |1                | offer_code (FK)*   |    +--------------------+
+        |                 | created_at         |
+        |*                +--------------------+
++--------------------+             |1
+|       queue        |             |
++--------------------+             |*
+| id (PK)            |    +--------------------+    +--------------------+
+| customer_id (FK)   |    |    order_items     |*  *|     menu_items     |
+| customer_name      |    +--------------------+----+--------------------+
+| party_size         |    | id (PK)            |    | id (PK)            |
+| token_number       |    | order_id (FK)      |    | category_id (FK)   |
+| status             |    | menu_item_id (FK)  |    | name               |
+| created_at         |    | quantity           |    | description        |
++--------------------+    | price_per_unit     |    | price              |
+        |1                | spice_level        |    | diet_type          |
+        |                 | item_total         |    | is_spicy_custom    |
+        |*                +--------------------+    | default_spice      |
++--------------------+                              | image_url          |
+|      reviews       |                              | is_available       |
++--------------------+                              +--------------------+
+| id (PK)            |                                       |*
+| customer_id (FK)   |                                       |
+| order_id (FK)      |                                       |1
+| menu_item_id (FK)  |                              +--------------------+
+| rating (1-5)       |                              |     categories     |
+| comment            |                              +--------------------+
+| created_at         |                              | id (PK)            |
++--------------------+                              | name (UNIQUE)      |
+                                                    | icon               |
+                                                    +--------------------+
+
+                                                    +--------------------+
+                                                    |       staff        |
+                                                    +--------------------+
+                                                    | id (PK)            |
+                                                    | name               |
+                                                    | role_title         |
+                                                    | shift              |
+                                                    | phone              |
+                                                    | salary             |
+                                                    | joined_date        |
+                                                    +--------------------+
 ```
 
 ### Key DBMS Concepts Demonstrated:
